@@ -1,0 +1,53 @@
+The DynamoDB database exists, in region us-west-2, and has this ARN: arn:aws:dynamodb:us-west-2:373705399158:table/JSC-Tracker
+
+This document describes the database schema. Note the following terms used in this schema:
+
+* The 'emailsha1' is the 40-character, lowercased, hexadecimal SHA1 of the email address.
+* All fields are strings, or arrays of strings, unless otherwise specified.
+* All timestamps are expressed as seconds since the epoch (January 1, 1970) as a digit string.
+* All entries have a timestamp field 'created_at' which is given a value when the row is added, and then never changed.
+* All entries have a timestamp field 'modified_at' which is given a value when the row is added, and updated on all subsequent edits to that row.
+* All entries have a timestamp field 'deactivated_at' which is given the value "0" when the row is added, and may be set to a timestamp if the row is to be "deleted". Rows are never actually deleted; they are just deactivated which hides them from queries. Certain queries may expressly state that deactivated rows should be returned so they may be reactivated.
+* The JSC number <jsc-number> is a digit string that does not start with a zero, such as "3210".
+* The special JSC number "0" is reserved to indicate who is a superuser.
+* The JSC number "-1" indicates the user is not a member of any JSC right now.
+* Contacts are stored per-user and are given an ID starting with "c" followed by four digits, such as "c0000".
+* Fields described as <markdown string> contain Markdown, are edited as a multiline textarea field, and are rendered as the HTML translation of the Markdown when not being edited. Embedded links are supported.
+
+Listed below are the keys and what they contain.
+
+User:
+
+pk: <emailsha1>-user
+name: <full name>
+email: <email address>
+slack_profile: <url string> or ""
+twopager: <url string> or ""
+cmf: <markdown string> or ""
+contact_info: <markdown string> or ""
+jsc: "0" (indicating this person is a superuser) or "-1" (indicates a normal user not in any JSC) or the JSC number as a digit string not starting with a zero
+contacts: ["c0000", "c0001", ...] or ["0"] if none
+created_at: <timestamp digit-string>
+modified_at: <timestamp digit-string>
+deactivated_at: <timestamp digit-string> or "0" if active
+last_login: <timestamp digit-string> or "0" if never logged in
+last_login_from: <x-forwarded-for list as a string> or "" if never
+
+JSC:
+
+pk: <jsc-number>-members
+members: [<emailsha1>, <emailsha1>, ...]
+created_at: <timestamp digit-string>
+modified_at: <timestamp digit-string>
+deactivated_at: <timestamp digit-string> or "0" if active
+
+Details on a particular contact:
+
+pk: <emailsha1>-c0000
+name: "Jane Doe"
+contact_info: <markdown string> or ""
+notes: <url string> or ""
+status: <markdown string> or ""
+created_at: <timestamp digit-string>
+modified_at: <timestamp digit-string>
+deactivated_at: <timestamp digit-string> or "0" if active

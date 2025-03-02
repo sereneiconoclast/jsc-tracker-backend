@@ -1,0 +1,103 @@
+I wish to create a web application. It will be called "JSC Tracker". Here is the specification. I would first like you to review the specification and identify any areas of ambiguity, or other concerns.
+
+1) Use AWS as the cloud platform. Create all resources in the us-west-2 AWS region.
+2) Assume the user has the AWS CLI installed, and has access (consisting of an access key and secret key) to an existing AWS account with an IAM user or role that has unlimited access. We will call that the "administrative role". Don't attempt to invent or hard-code the access key or secret key, but assume the AWS CLI has been configured with a profile called "default" with those values already.
+3) To create further AWS resources, create CloudFormation templates. Don't attempt to execute them yourself, just create the templates and indicate the order in which they should be executed.
+4) For the database, create a CloudFormation template to be executed using the administrative role, that will create:
+  a) a limited role called "DynamoDB Role" that only has access to read and write entries in the DynamoDB table, and
+  b) a single DynamoDB database table called "JSC-Tracker" using the on-demand pricing model. Do not create multiple tables. All data should be stored in the one table, with database keys designed so that different use cases can coexist in the same table.
+5) To store any necessary static HTML content, a CloudFormation template should specify creating an S3 bucket. Call this bucket "jsc-tracker.infinitequack.net".
+6) For the programming language, use Ruby 3.3. Use AWS Lambda for the program logic, AWS Gateway to configure a RESTful web interface, and CloudFront to accept HTTPS connections with a certificate. The CloudFront distribution, AWS Gateway configuration, and any necessary Lambda functions should be specified by CloudFormation templates.
+7) For the DNS, assume that Route53 is in use, and that a domain "infinitequack.net" already exists. Create a new 'A' record called "jsc-tracker.infinitequack.net" that points to the CloudFront distribution.
+8) For the web browser interface, use React. Whenever a link is clicked to an external document, that document should be opened in a new window.
+9) All users in the system are identified by their email address. Authentication is done exclusively via Google OAuth. When the user accesses the website and is not yet authenticated, they are shown a button to authenticate using Google. If this is successful, the browser redirects back to the home page https://jsc-tracker.infinitequack.net/ which then shows the full web interface. Logins are valid for four hours and then expire.
+10) At the root level of the data model is a JSC, which is a group of users (no more than ten users per JSC). Every JSC is assigned a number. There is also a single user who is designated the superuser. The superuser is shown a unique interface that allows them to list all the JSCs. The superuser also has the ability to create a new JSC and to specify its new number. The superuser can add users (by their email addresses) to any existing JSC.
+11) All other users are normal users. They are shown a page that only has information about the JSC of which they are a member. The rest of this specification describes the interface as seen by a normal member.
+12) There are four sections of the interface:
+  a) The first section is called "Mnookin 2-Pager". This is presented as a list of the JSC members, and beside each, a clickable link to a document. The URL can be edited by the one member it is about. If the members are alice@gmail.com, brian@gmail.com, and charles@gmail.com, then there are three clickable links, one connected to each of their names. alice@gmail.com is allowed (only) to edit the URL of the 2-Pager associated with her.
+  b) The second section is called "Listening Tour". This is presented as another list of the JSC members, and under each, a list of the names of other people to contact, or who have been contacted. Underneath _each contact_ is a table containing three columns: a date and time, a link to a document, and a description of what the document is about, such as "In-person conversation". Each of these three fields can be edited by the JSC member, and a button is also shown beneath the table that will add another table row when clicked. Also, in this section, the entire table underneath a JSC member can be revealed or hidden by clicking on an expand/collapse widget beside the member's name.
+  c) The third section is called "Candidate-Market Fit". This consists of a list of the JSC members, and beside each, a text area, a few lines long, big enough to hold a couple of sentences. Each text area can be edited by the JSC member it is about.
+  d) The fourth and final section is a button that any member can click to add a new member to the JSC. This pops up a dialog that permits entering a new member's email address, and two buttons "Add Member" and "Cancel". If "Cancel" is clicked, the dialog closes without doing anything. If "Add Member" is clicked, a new entry is created in the database for the new member, and the page refreshes.
+13) All changes made through the web interface are carried out more or less immediately. For example, if an edit is made to a text area in the "Candidate-Market Fit" section, and the user stops typing for a second, the browser initiates a RESTful call to the website to update the field's value in the database.
+
+Those are the specifications. First, can you tell me if any part of these instructions is unclear, or raises any concerns?
+
+
+Your specification is quite clear and well thought out. However, I see a few areas that might need clarification or further discussion to avoid issues during implementation. Here are my observations:
+
+### **General Concerns:**
+1. **Security Considerations**
+   - AWS credentials should be managed securely. Using IAM roles instead of hardcoded access keys is recommended.
+     IGNORE, low priority.
+   - Since OAuth authentication is being used, consider whether users should be stored in Cognito or if JWT tokens should be validated directly on AWS Lambda. How will unauthorized users be handled?
+     ???
+   - Does the superuser need extra security measures (e.g., MFA)?
+     NO.
+   - Will DynamoDB encryption be enabled?
+     ???
+2. **Scalability and Cost Considerations**
+   - The on-demand pricing model for DynamoDB is good for small-scale use but can become expensive at scale. If JSC Tracker grows, would a provisioned capacity model make sense?
+     IGNORE, deal with this later if ever.
+   - Lambda's execution time is limited (15 min max). Could any operations (e.g., listing all JSCs) take long enough to require a different solution (e.g., SQS + background processing)?
+     IGNORE, deal with this later if ever.
+   - React-based UI hosted on S3 + CloudFront is cost-effective, but Lambda and API Gateway costs should be monitored if the app gains users.
+     IGNORE, deal with this later if ever.
+
+3. **Error Handling & Logging**
+   - Should Lambda functions have structured logging (e.g., AWS CloudWatch Logs, centralized error monitoring)?
+     YES, for debugging purposes it would be useful to have
+   - If an API call fails, should users see an error message, or should failures be silently retried?
+     Displaying the message is fine for now. No retries, but a retry button could be useful in cases where the front-end can tell the write did not happen.
+     For debugging purposes, each call should have a transaction ID. This
+     should be displayed to the user if the transaction failed, and should be
+     logged with additional details by Lambda to make debugging easier for
+     the maintainer.
+
+### **Specific Areas of Uncertainty:**
+1. **JSC User Limits**
+   - The specification says, "no more than ten users per JSC." Is this a hard limit enforced at the database level? What happens if the superuser tries to add an 11th user?
+     NO, no need.
+   - Should the system notify the superuser when a JSC is close to reaching its limit?
+     In the future it might be useful to be able to display the largest, and
+     more interestingly, smallest JSCs. Future work, not needed at the start.
+
+2. **OAuth Authentication with Google**
+   - Will Google OAuth be managed directly in the React frontend, or will AWS Cognito (or a custom Lambda function) act as an intermediary?
+     Duplicate of above question.
+   - How will user sessions be handled client-side (cookies vs. local storage)?
+     Cookies are fine.
+   - After the 4-hour expiration, should users be logged out immediately, or should they be given a refresh token option?
+     They should be required to log in with Google again. However, if the user remains active for longer than an hour, the token should be
+     automatically refreshed.
+
+3. **Superuser Privileges**
+   - The superuser can list all JSCs. How does this work for large numbers of JSCs (pagination, filtering)?
+     Pagination is wise, but this feature can be added later.
+   - Can the superuser delete a JSC or only create new ones?
+     All deletion should be done by marking a record 'inactive' rather than by truly deleting it. Every DynamoDB entry should have a timestamp column 'created_at', that stores the time in seconds since the epoch, and another 'deactivated_at'. The latter should normally be zero to indicate the entry is still active. If the user wants to delete the entry, it sets 'deactivated_at' to the time in seconds since the epoch, and the row is excluded in future queries, unless an explicit query is done to find inactive rows. Support for this in the UI is not required in the first version.
+
+4. **DynamoDB Schema Design**
+   - Since all data is stored in one table, what is the partition key and sort key strategy?
+   - How will different entities (users, JSCs, and associated data) be distinguished?
+   - Are there secondary indexes required to query data efficiently (e.g., listing JSCs for a given user)?
+
+5. **React UI & Data Synchronization**
+   - Edits (like updating the "Candidate-Market Fit" text area) trigger an API call after 1 second. Will debounce be used to avoid excessive API requests?
+   - Should there be optimistic UI updates, or will changes only be reflected after confirmation from the server?
+   - What happens if two users edit the same data at the same time?
+
+6. **S3 Hosting & Route 53 Setup**
+   - The static website will be hosted in an S3 bucket. Should automatic invalidation of CloudFront caches be set up when new content is deployed?
+   - Does the CloudFormation template need to handle HTTPS certificate creation and renewal, or is this handled separately in ACM?
+
+7. **Handling External Links**
+   - The interface specifies that links to external documents should open in a new window. Should there be any validation or security restrictions on these links (e.g., only allow HTTPS links, prevent JavaScript injection)?
+
+### **Possible Enhancements:**
+- **User Roles & Permissions:** Could there be a need for more than just a "superuser" and "normal user" distinction in the future? For example, a "JSC admin" role for each JSC?
+- **Audit Logging:** Should user actions (e.g., adding a new member, modifying a document link) be logged for tracking and debugging?
+- **Bulk Operations:** Should the superuser be able to add multiple users to a JSC at once?
+- **Notification System:** Should users receive email notifications (via SES) when changes occur in their JSC?
+
+### **Final Thoughts**
+The specification is well-structured and feasible, but the above concerns should be addressed to ensure robustness, security, and scalability. Would you like me to refine any parts of the design based on these observations?

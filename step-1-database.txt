@@ -1,0 +1,97 @@
+You will be creating a web application. Here is the first part of the specification:
+
+1) Use AWS as the cloud platform. Create all resources in the us-west-2 AWS region.
+2) Assume the user has the AWS CLI installed, and has access (consisting of an access key and secret key) to an existing AWS account with an IAM user or role that has unlimited access. We will call that the "administrative role". Don't attempt to invent or hard-code the access key or secret key, but assume the AWS CLI has been configured with a profile called "default" with those values already.
+3) To create further AWS resources, create CloudFormation templates. Don't attempt to execute them yourself, just create the templates and indicate the order in which they should be executed.
+4) For the database, create a CloudFormation template to be executed using the administrative role, that will create:
+  a) a limited role called "DynamoDB Role" that only has access to read and write entries in the DynamoDB table, and
+  b) a single DynamoDB database table called "JSC-Tracker" using the on-demand pricing model. Do not create multiple tables. All data should be stored in the one table, with database keys designed so that different use cases can coexist in the same table.
+
+Do you have enough information to create the first CloudFormation template?
+
+
+
+Yes, I have enough information to create the first CloudFormation template for the DynamoDB table and the limited IAM role. Based on the specifications provided, I'll create a template that includes:
+
+1. A DynamoDB table named "JSC-Tracker" with on-demand pricing
+2. An IAM role named "DynamoDB Role" with permissions to read and write to the "JSC-Tracker" table
+
+Here's the CloudFormation template:
+
+yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for JSC-Tracker DynamoDB table and DynamoDB Role'
+
+Resources:
+  JSCTrackerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: JSC-Tracker
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+  DynamoDBRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DynamoDB-Role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: !GetAtt JSCTrackerTable.Arn
+
+Outputs:
+  TableName:
+    Description: Name of the DynamoDB table
+    Value: !Ref JSCTrackerTable
+  TableArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt JSCTrackerTable.Arn
+  DynamoDBRoleArn:
+    Description: ARN of the DynamoDB Role
+    Value: !GetAtt DynamoDBRole.Arn
+
+
+This template creates:
+
+1. A DynamoDB table named "JSC-Tracker" with on-demand pricing (PAY_PER_REQUEST billing mode). The table uses a composite primary key with a partition key (PK) and a sort key (SK), both of type String. This design allows for flexible data modeling within a single table.
+
+2. An IAM role named "DynamoDB-Role" with permissions to perform read and write operations (GetItem, PutItem, UpdateItem, DeleteItem, Query, and Scan) on the JSC-Tracker table.
+
+To use this template:
+
+1. Save it as a YAML file (e.g., jsc-tracker-dynamodb.yaml).
+2. Use the AWS CLI to create the stack in the us-west-2 region:
+
+
+aws cloudformation create-stack --stack-name jsc-tracker-dynamodb --template-body file://jsc-tracker-dynamodb.yaml --region us-west-2 --capabilities CAPABILITY_NAMED_IAM
+
+
+This command assumes you have the AWS CLI configured with the "default" profile that has the necessary permissions to create these resources.
+
+This template should be executed first in your series of CloudFormation templates, as it sets up the fundamental database and IAM role that other components of your application will likely depend on.

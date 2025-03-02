@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for GetUserInfo Lambda function'
+
+Resources:
+  GetUserInfoLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'GetUserInfo'
+      Handler: 'get_user_info.lambda_handler'
+      Role: 'arn:aws:iam::373705399158:role/JSC-Tracker-DynamoDB-Role'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.2
+      Timeout: 30
+      MemorySize: 128
+
+Outputs:
+  GetUserInfoLambdaFunctionArn:
+    Description: 'ARN of the GetUserInfo Lambda function'
+    Value: !GetAtt GetUserInfoLambdaFunction.Arn
