@@ -16,6 +16,13 @@ This document describes the database schema. Note the following terms used in th
 
 Listed below are the keys and what they contain.
 
+All types:
+
+pk: <defined differently for each type>
+created_at: <timestamp digit-string>
+modified_at: <timestamp digit-string>
+deactivated_at: <timestamp digit-string> or "0" if active
+
 User:
 
 pk: <emailsha1>-user
@@ -26,20 +33,19 @@ twopager: <url string> or ""
 cmf: <markdown string> or ""
 contact_info: <markdown string> or ""
 jsc: "0" (indicating this person is a superuser) or "-1" (indicates a normal user not in any JSC) or the JSC number as a digit string not starting with a zero
-contacts: ["c0000", "c0001", ...] or ["0"] if none
-created_at: <timestamp digit-string>
-modified_at: <timestamp digit-string>
-deactivated_at: <timestamp digit-string> or "0" if active
-last_login: <timestamp digit-string> or "0" if never logged in
-last_login_from: <x-forwarded-for list as a string> or "" if never
+contact_id_set: ["c0000", "c0001", ...] or ["0"] if none
+archived_contact_id_set: ["c0000", "c0001", ...] or ["0"] if none
+next_contact_id: 'c0001'
+  # These are used by the Google login process
+  google_state: <random 16-digit hex string>
+  code_verifier: <random 60-character string>
+  login_expires_at: <timestamp>
+last_logins_at: <List of up to 6 timestamp digit-string> or ["0"] if never logged in
 
 JSC:
 
 pk: <jsc-number>-members
 members: [<emailsha1>, <emailsha1>, ...]
-created_at: <timestamp digit-string>
-modified_at: <timestamp digit-string>
-deactivated_at: <timestamp digit-string> or "0" if active
 
 Details on a particular contact:
 
@@ -48,6 +54,3 @@ name: "Jane Doe"
 contact_info: <markdown string> or ""
 notes: <url string> or ""
 status: <markdown string> or ""
-created_at: <timestamp digit-string>
-modified_at: <timestamp digit-string>
-deactivated_at: <timestamp digit-string> or "0" if active
