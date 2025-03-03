@@ -5,15 +5,19 @@ class DynamoObject
 
   def self.inherited base
     pk = DbFields::ReadOnlyField.new(
-      owner: base, name: :pk, label: '',
-      text_field_class: nil, html_element_type: :span)
-    created_at = DbFields::CreatedAtField.new(
-      owner: base, name: :created_at, label: '',
-      text_field_class: nil, html_element_type: :span
+      owner: base, name: :pk, label: '')
+    created_at = DbFields::TimestampField.new(
+      owner: base, name: :created_at, label: 'Created at'
     ) { Time.now }
-    [pk, created_at].each(&:define_accessor)
+    modified_at = DbFields::TimestampField.new(
+      owner: base, name: :modified_at, label: 'Modified at'
+    ) { Time.now }
+    deactivated_at = DbFields::TimestampField.new(
+      owner: base, name: :deactivated_at, label: 'Deactivated at'
+    ) { nil }
+    [pk, created_at, modified_at, deactivated_at].each(&:define_accessor)
     base.instance_variable_set(:@fields,
-      { pk: pk, created_at: created_at }
+      { pk: pk, created_at: created_at, modified_at: modified_at, deactivated_at: deactivated_at }
     )
   end
 
@@ -78,6 +82,7 @@ class DynamoObject
   def initialize(**kwargs)
     unrecognized = kwargs.keys - field_names
     raise "Unrecognized constructor args for #{self.class}: #{unrecognized.join(', ')}" unless unrecognized.empty?
+    self.created_at = Time.now.to_i
     fields(&:writable?).each do |field|
       new_val = if kwargs.has_key?(field.name)
         kwargs[field.name]
@@ -90,7 +95,6 @@ class DynamoObject
   end
 
   def to_dynamodb
-    self.created_at = Time.now.to_i
     r = { pk: pk }
     fields(&:normal?).each do |field|
       raw_val = public_send(field.name)
@@ -100,10 +104,13 @@ class DynamoObject
     r
   end
 
+  def write!
+    self.modified_at = Time.now
+    db.write(item: to_dynamodb)
+  end
+
   def self.from_dynamodb(dynamodb_record:, **kwargs)
-    id_field_names = fields(&:id?).map(&:name)
-    raise "Expected ID fields #{id_field_names} but got #{kwargs.keys}" unless
-      id_field_names == kwargs.keys
+    raise "Call this on a subclass" if self == DynamoObject
 
     writable_fields = fields(&:writable?)
     writable_field_names = writable_fields.map(&:name)
@@ -123,18 +130,15 @@ class DynamoObject
   def after_load_hook
   end
 
-  # Build and return an Array<InputField> with the id correctly reflecting
-  # the prefix, and the value taken from this object
-  def base_input_fields
-    self.class.base_input_field_names.map do |field_name|
-      field(field_name).to_text_field(self)
-    end
+  def active?
+    !deactivated_at
+  end
+
+  def deactivate!
+    self.deactivated_at = Time.now
   end
 
   def to_s
-    id_fields = fields(&:id?).map do |field|
-      "#{field.name}: #{public_send(field.name)}"
-    end.join(', ')
-    "#{self.class}: #{id_fields}"
+    "#{self.class}: #{pk}"
   end
 end
