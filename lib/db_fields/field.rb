@@ -4,10 +4,10 @@ module DbFields
   class Field
     def initialize(
       owner:, name:, label:, markdown: false,
-      &default_value
+      to_json: nil, &default_value
     )
       default_value ||= -> { nil }
-      @owner, @name, @label, @markdown, @default_value = owner, name, label, markdown, default_value
+      @owner, @name, @label, @markdown, @to_json, @default_value = owner, name, label, markdown, to_json, default_value
       raise "Needs an owner" unless owner
       raise "Needs a name" unless name
     end
@@ -54,6 +54,17 @@ module DbFields
 
     def to_dynamodb(val)
       strip_if_string(val)
+    end
+
+    def to_json_hash(val)
+      {
+        name => to_json_value(val)
+      }
+    end
+
+    def to_json_value(val)
+      return @to_json.call(val) if @to_json
+      val
     end
 
     def strip_if_string(s)

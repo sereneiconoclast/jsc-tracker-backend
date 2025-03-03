@@ -29,7 +29,7 @@ module Jsc
     field(:twopager) { 'Two-pager URL' }
     field(:cmf) { 'Candidate-Market Fit goes here' }
     field(:contact_info) { 'Contact Info goes here' }
-    field(:jsc) { '-1' }
+    field(:jsc, to_json: ->(v) { v == '-1' ? nil : v }) { '-1' }
     # Set<String>
     field(:contact_id_set) { Set.new }
     # Set<String>
@@ -43,7 +43,7 @@ module Jsc
     # The Google login is good until this time
     field(:login_expires_at, field_class: DbFields::TimestampField) { nil }
     # Record the time of last login
-    field(:last_logins_at) { ['0'] }
+    field(:last_logins_at, to_json: ->(v) { v == ['0'] ? [] : v }) { ['0'] }
 
     # Generated during login-challenge process, saved to database for confirmation
     def self.google_generate_state

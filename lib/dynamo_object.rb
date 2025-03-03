@@ -33,7 +33,7 @@ class DynamoObject
   # label: optional, defaults to name.capitalize, used to render the label
   #   in HTML forms
   def self.field name, field_class: nil, id: nil,
-    label: nil, html_element_type: nil, &default_value
+    label: nil, to_json: nil, &default_value
 
     raise "Already defined #{@fields[name]}" if @fields[name]
     label ||= name.capitalize
@@ -48,6 +48,7 @@ class DynamoObject
       owner: self,
       name: name,
       label: label,
+      to_json: to_json,
       &default_value
     )
     field.define_accessor
@@ -136,6 +137,10 @@ class DynamoObject
 
   def deactivate!
     self.deactivated_at = Time.now
+  end
+
+  def to_json_hash
+    fields.map { |f| f.to_json_hash(public_send(f.name)) }.reduce({}, :merge)
   end
 
   def to_s

@@ -14,5 +14,9 @@ module DbFields
     def to_dynamodb(val)
       val.empty? ? ['0'].to_set : val
     end
+
+    def to_json_value(val)
+      val.to_a
+    end
   end
 end
