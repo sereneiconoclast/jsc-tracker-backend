@@ -1,5 +1,6 @@
 source "https://rubygems.org"
 gem 'activesupport', '~> 8.0'
 gem 'aws-sdk-dynamodb', '~> 1.132'
+gem 'aws-sdk-secretsmanager', '~> 1.113'
 # gem 'aws-sdk-ses', '~> 1.78'
 gem 'redcarpet', '~> 3.6'
