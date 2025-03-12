@@ -3,6 +3,8 @@ require_relative 'monkey_patches/require_all'
 
 require 'db'
 
+JSC_REGION = 'us-west-2'
+
 # Very important! CloudFront must be configured with behavior:
 # * Redirect HTTP to HTTPS
 # * Allow all HTTP methods
@@ -20,15 +22,12 @@ CNAME_FQDN = 'jsc.infinitequack.net' # CloudFront CNAME 'abcdefghijklmn.cloudfro
 module ::Kernel
   def jsc_email_sha1_salt
     $jsc_email_sha1_salt ||= begin
-      $secrets_manager_client ||= Aws::SecretsManager::Client.new(region: 'us-west-2')
+      $secrets_manager_client ||= Aws::SecretsManager::Client.new(region: JSC_REGION)
 
-      begin
-        get_secret_value_response = $secrets_manager_client.get_secret_value(secret_id: 'jsc-email-sha1-salt')
-      rescue StandardError => e
-        # For a list of exceptions thrown, see
-        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-        raise e
-      end
+      # See jsc-tracker-lambda.yaml for the secret ID
+      # For a list of exceptions thrown, see
+      # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+      get_secret_value_response = $secrets_manager_client.get_secret_value(secret_id: 'jsc-tracker-email-sha1-salt')
 
       JSON.parse(get_secret_value_response.secret_string)['email_sha1_salt']
     end
@@ -36,7 +35,7 @@ module ::Kernel
 
   def db
     $db ||= begin
-      DB.new(table: 'JSC-Tracker', region: 'us-west-2')
+      DB.new(table: 'JSC-Tracker', region: JSC_REGION)
     end
   end
 end

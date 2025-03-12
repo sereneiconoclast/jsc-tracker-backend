@@ -3,7 +3,7 @@ require 'jwt'
 require 'digest/sha1'
 
 module Utils
-  DYNAMO_DB = Aws::DynamoDB::Client.new(region: 'us-west-2')
+  DYNAMO_DB = Aws::DynamoDB::Client.new(region: JSC_REGION)
   TABLE_NAME = 'JSC-Tracker'
 
   def verify_jwt(token)
