@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for GetUserInfo Lambda function'
+
+Resources:
+  JSCTrackerSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      # At the moment this is the only secret we need
+      Description: 'Salt for email SHA1'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'email_sha1_salt'
+        ExcludeLowercase: false
+        ExcludeNumbers: false
+        ExcludePunctuation: true
+        ExcludeUppercase: false
+        IncludeSpace: false
+        PasswordLength: 8
+        RequireEachIncludedType: false
+      Name: 'jsc-tracker-email-sha1-salt'
+
+  JSCTrackerLambdaSecretPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: 'JSC-Tracker-Lambda-Secret-Access'
+      Roles:
+        - Fn::ImportValue: 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleName'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            # Created by hand in SecretsManager
+            Resource: !Ref JSCTrackerSecret
+
+  JSCTrackerGetUserInfoLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerGetUserInfo'
+      Handler: 'get_user_info.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+Outputs:
+  JSCTrackerGetUserInfoLambdaFunctionArn:
+    Description: 'ARN of the GetUserInfo Lambda function'
+    Value: !GetAtt JSCTrackerGetUserInfoLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserInfoLambdaFunctionArn'

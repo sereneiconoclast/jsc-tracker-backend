@@ -14,7 +14,7 @@ Resources:
         - AttributeName: pk
           KeyType: HASH
 
-  DynamoDBRole:
+  JSCTrackerDynamoDBRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: JSC-Tracker-DynamoDB-Role
@@ -41,12 +41,23 @@ Resources:
                 Resource: !GetAtt JSCTrackerTable.Arn
 
 Outputs:
-  TableName:
+  JSCTrackerTableName:
     Description: Name of the DynamoDB table
     Value: !Ref JSCTrackerTable
-  TableArn:
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerTableName'
+  JSCTrackerTableArn:
     Description: ARN of the DynamoDB table
     Value: !GetAtt JSCTrackerTable.Arn
-  DynamoDBRoleArn:
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerTableArn'
+  JSCTrackerDynamoDBRoleName:
+    Description: Name of the DynamoDB Role
+    Value: !Ref JSCTrackerDynamoDBRole
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerDynamoDBRoleName'
+  JSCTrackerDynamoDBRoleArn:
     Description: ARN of the DynamoDB Role
-    Value: !GetAtt DynamoDBRole.Arn
+    Value: !GetAtt JSCTrackerDynamoDBRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerDynamoDBRoleArn'
