@@ -2,7 +2,7 @@ require 'active_support/core_ext/hash/keys' # symbolize_keys
 require 'aws-sdk-dynamodb'
 
 class DB
-  DEBUG = true
+  debug_me!
 
   def initialize(table:, region:)
     @table_name = table
@@ -21,27 +21,28 @@ class DB
         key: { pk: pk }
       }
     )&.item.tap do |item|
-      puts("DynamoDB read #{pk} => #{item ? JSON.pretty_generate(item) : 'Not found'}") if DEBUG
+      debug("DynamoDB read #{pk} => #{item ? JSON.pretty_generate(item) : 'Not found'}")
     end&.symbolize_keys
   end
 
   def write item:
-    puts "DynamoDB write #{JSON.pretty_generate(item)}" if DEBUG
-    raise "Oops: no pk" unless item[:pk]
+    pk = item[:pk]
+    raise "Oops: no pk in #{item.inspect}" unless pk
+    debug("DynamoDB write #{JSON.pretty_generate(item)}")
     dynamodb.put_item(
       table_name: table_name,
       item: item
     )
   rescue Aws::DynamoDB::Errors::ServiceError => error
-    warn "Unable to update DynamoDB: #{error}"
+    warn "Unable to write #{pk} to DynamoDB: #{error}"
     raise
   end
 
   def delete pk:
     dynamodb.delete_item({ table_name: table_name, key: { pk: pk }})
-    puts "DynamoDB delete #{pk}"
+    debug("DynamoDB delete #{pk}")
   rescue Aws::DynamoDB::Errors::ServiceError => error
-    warn "Unable to update DynamoDB: #{error}"
+    warn "Unable to delete #{pk} from DynamoDB: #{error}"
     raise
   end
 end
