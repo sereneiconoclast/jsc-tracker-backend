@@ -1,5 +1,5 @@
 require 'set'
-require 'job_slog/field'
+require 'db_fields/field'
 
 module DbFields
   class SetField < Field

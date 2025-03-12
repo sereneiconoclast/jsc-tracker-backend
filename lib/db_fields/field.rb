@@ -1,5 +1,3 @@
-require 'reverse_markdown' # Convert HTML to Markdown
-
 module DbFields
   class Field
     def initialize(

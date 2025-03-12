@@ -162,17 +162,17 @@ Example API calls:
 
 1. Get user information:
  GET /user
- Authorization: Bearer 
+ Authorization: Bearer
 
 2. Update user name:
  PATCH /user
- Authorization: Bearer 
+ Authorization: Bearer
  Content-Type: application/json
  { "name": "New Name" }
 
 3. Add a new contact:
  POST /contacts
- Authorization: Bearer 
+ Authorization: Bearer
  Content-Type: application/json
  { "name": "Jane Doe" }
 
@@ -184,7 +184,7 @@ Example API calls:
 
 5. Get paginated list of users (for superusers):
  GET /users?limit=10&offset=0&filter=john
- Authorization: Bearer 
+ Authorization: Bearer
 
 6. Assign user to JSC (for superusers):
  PUT /users//assign/1234

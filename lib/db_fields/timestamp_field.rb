@@ -1,4 +1,4 @@
-require 'job_slog/field'
+require 'db_fields/field'
 
 module DbFields
   class TimestampField < Field
