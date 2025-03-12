@@ -105,12 +105,23 @@ class DynamoObject
     r
   end
 
+  def ==(other)
+    return true if other.equal?(self)
+    return false unless other.class.equal?(self.class)
+    to_dynamodb == other.to_dynamodb
+  end
+
+  def hash
+    to_dynamodb.hash
+  end
+
   def write!
     self.modified_at = Time.now
     db.write(item: to_dynamodb)
   end
 
   def self.from_dynamodb(dynamodb_record:, **kwargs)
+    return nil unless dynamodb_record
     raise "Call this on a subclass" if self == DynamoObject
 
     writable_fields = fields(&:writable?)
