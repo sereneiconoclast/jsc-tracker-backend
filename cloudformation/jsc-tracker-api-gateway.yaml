@@ -147,3 +147,20 @@ Resources:
   #     Action: lambda:InvokeFunction
   #     FunctionName: arn:aws:lambda:us-west-2:373705399158:function:JSCTrackerDeactivateContact
   #     Principal: apigateway.amazonaws.com
+
+Outputs:
+  JSCTrackerApiId:
+    Description: ID of the REST API
+    Value: !Ref JSCTrackerApi
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerApiId'
+  JSCTrackerApiRootResourceId:
+    Description: Root resource ID of the API
+    Value: !GetAtt JSCTrackerApi.RootResourceId
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerApiRootResourceId'
+  JSCTrackerGetUserInfoMethodId:
+    Description: ID of the GetUserInfo method
+    Value: !Ref GetUserInfoMethod
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserInfoMethodId'
