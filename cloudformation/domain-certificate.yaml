@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Certificate for domain
+# This must be created in the specific region where the certificate should exist:
+# aws cloudformation create-stack --region us-west-2 --stack-name domain-certificate
+#   --template-body file://cloudformation/domain-certificate.yaml --capabilities CAPABILITY_NAMED_IAM
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: "*.infinitequack.net"
+    Description: The domain name to protect with the certificate, which may contain a wildcard.
+# You can have ValidationDomain, or HostedZoneId, but not both.
+# ValidationDomain:
+#   Type: String
+#   Default: "infinitequack.net"
+#   Description: The domain to which emails will be sent, e.g. webmaster@infinitequack.net.
+  HostedZoneId:
+    Type: String
+    Default: "Z04354022LVBEOB5Q6PK4"
+    Description: The zone ID in Route53.
+
+Resources:
+  DomainCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      DomainValidationOptions: 
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+        # ValidationDomain: !Ref ValidationDomain
+      ValidationMethod: "DNS"
+
+Outputs:
+  DomainCertificateArn:
+    Description: ARN of the certificate
+    Value: !Ref DomainCertificate
+    Export:
+      Name: !Sub '${AWS::StackName}-DomainCertificateArn'
