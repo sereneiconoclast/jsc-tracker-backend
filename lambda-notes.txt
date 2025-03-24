@@ -1,0 +1,117 @@
+https://docs.aws.amazon.com/lambda/latest/dg/ruby-context.html
+Of particular interest:
+aws_request_id - The identifier of the invocation request
+identity – (mobile apps) Information about the Amazon Cognito identity that authorized the request.
+
+Steps to add a new method:
+
+* Create the new handler, e.g. lib/post_user_user_id.rb
+* Lambda stack: Add new function, e.g. JSCTrackerPostUserUserIdLambdaFunction, updating FunctionName and Handler
+* Lambda stack: Add new output for new function ARN, e.g. JSCTrackerPostUserUserIdLambdaFunctionArn
+* API Gateway stack: Add new resource(s) if the path is new
+* API Gateway stack: Add new method, e.g. JSCTrackerPostUserUserIdMethod, updating ResourceId, HttpMethod,
+  and LambdaFunctionArn
+* API Gateway stack: Add new permission, e.g. JSCTrackerLambdaPermissionPostUserUserId, updating FunctionName
+* API Gateway stack: Add new method to DependsOn under JSCTrackerDeployment
+* Create-JscZip to upload code to S3
+* Update-JscStack jsc-tracker-lambda
+* Update-JscStack jsc-tracker-api-gateway
+
+{
+  # This is an example event object.
+  "event": {
+    "resource": "/user/{user_id}",
+    "path": "/user/greg.meyers.1138@gmail.com",
+    "httpMethod": "POST",
+    "headers": {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "Host": "jsc-tracker.infinitequack.net",
+      "User-Agent": "curl/8.5.0",
+      "X-Amzn-Trace-Id": "Root=1-67e0cc28-408f3fac4c9632965c1874ae",
+      "X-Forwarded-For": "35.94.129.14",
+      "X-Forwarded-Port": "443",
+      "X-Forwarded-Proto": "https"
+    },
+    "multiValueHeaders": {
+      "accept": [
+        "application/json"
+      ],
+      "content-type": [
+        "application/json"
+      ],
+      "Host": [
+        "jsc-tracker.infinitequack.net"
+      ],
+      "User-Agent": [
+        "curl/8.5.0"
+      ],
+      "X-Amzn-Trace-Id": [
+        "Root=1-67e0cc28-408f3fac4c9632965c1874ae"
+      ],
+      "X-Forwarded-For": [
+        "35.94.129.14"
+      ],
+      "X-Forwarded-Port": [
+        "443"
+      ],
+      "X-Forwarded-Proto": [
+        "https"
+      ]
+    },
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": {
+      "user_id": "greg.meyers.1138@gmail.com"
+    },
+    "stageVariables": null,
+    "requestContext": {
+      "resourceId": "lq04b5",
+      "resourcePath": "/user/{user_id}",
+      "httpMethod": "POST",
+      "extendedRequestId": "H6TWUEPzvHcEVSg=",
+      "requestTime": "24/Mar/2025:03:06:16 +0000",
+      "path": "/user/greg.meyers.1138@gmail.com",
+      "accountId": "373705399158",
+      "protocol": "HTTP/1.1",
+      "stage": "prod",
+      "domainPrefix": "jsc-tracker",
+      "requestTimeEpoch": 1742785576029,
+      "requestId": "305dc4b0-8c44-4e6c-b651-762b0cab3a24",
+      "identity": {
+        "cognitoIdentityPoolId": null,
+        "accountId": null,
+        "cognitoIdentityId": null,
+        "caller": null,
+        "sourceIp": "35.94.129.14",
+        "principalOrgId": null,
+        "accessKey": null,
+        "cognitoAuthenticationType": null,
+        "cognitoAuthenticationProvider": null,
+        "userArn": null,
+        "userAgent": "curl/8.5.0",
+        "user": null
+      },
+      "domainName": "jsc-tracker.infinitequack.net",
+      "deploymentId": "s3abzh",
+      "apiId": "syh82b5dx5"
+    },
+    "body": "{}",
+    "isBase64Encoded": false
+  },
+
+  # These are methods available on the context object.
+  "context_class": [
+    "aws_request_id",
+    "invoked_function_arn",
+    "log_group_name",
+    "log_stream_name",
+    "function_name",
+    "memory_limit_in_mb",
+    "function_version",
+    "client_context",
+    "deadline_ms",
+    "identity",
+    "get_remaining_time_in_millis"
+  ]
+}

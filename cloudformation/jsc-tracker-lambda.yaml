@@ -46,9 +46,28 @@ Resources:
       Timeout: 30
       MemorySize: 128
 
+  JSCTrackerPostUserUserIdLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostUserUserId'
+      Handler: 'post_user_user_id.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
 Outputs:
   JSCTrackerGetUserUserIdLambdaFunctionArn:
     Description: 'ARN of the GetUserUserId Lambda function'
     Value: !GetAtt JSCTrackerGetUserUserIdLambdaFunction.Arn
     Export:
       Name: !Sub '${AWS::StackName}-JSCTrackerGetUserUserIdLambdaFunctionArn'
+  JSCTrackerPostUserUserIdLambdaFunctionArn:
+    Description: 'ARN of the PostUserUserId Lambda function'
+    Value: !GetAtt JSCTrackerPostUserUserIdLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostUserUserIdLambdaFunctionArn'

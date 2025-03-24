@@ -83,6 +83,24 @@ Resources:
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetUserUserIdLambdaFunctionArn
 
+  # POST /user/{user_id}
+  JSCTrackerPostUserUserIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerUserUserIdResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.user_id: true
+        method.request.querystring.brief: false
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostUserUserIdLambdaFunctionArn
+
   JSCTrackerDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties:
@@ -90,6 +108,7 @@ Resources:
       StageName: prod
     DependsOn:
       - JSCTrackerGetUserUserIdMethod
+      - JSCTrackerPostUserUserIdMethod
 
   JSCTrackerLambdaPermissionGetUserUserId:
     Type: AWS::Lambda::Permission
@@ -97,6 +116,14 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName:
         !ImportValue 'jsc-tracker-lambda-JSCTrackerGetUserUserIdLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionPostUserUserId:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostUserUserIdLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
 Outputs:
