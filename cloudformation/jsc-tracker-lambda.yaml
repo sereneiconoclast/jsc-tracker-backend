@@ -30,7 +30,6 @@ Resources:
         Statement:
           - Effect: Allow
             Action: secretsmanager:GetSecretValue
-            # Created by hand in SecretsManager
             Resource: !Ref JSCTrackerSecret
 
   JSCTrackerGetUserInfoLambdaFunction:

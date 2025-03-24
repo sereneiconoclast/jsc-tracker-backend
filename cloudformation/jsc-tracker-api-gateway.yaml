@@ -1,9 +1,52 @@
 AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  JSCTrackerDomainName:
+    Type: String
+    Default: "jsc-tracker.infinitequack.net"
+    Description: The domain name for the API Gateway.
+  HostedZoneId:
+    Type: String
+    Default: "Z04354022LVBEOB5Q6PK4"
+    Description: The zone ID in Route53.
+
 Resources:
   JSCTrackerApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: JSC-Tracker
+      # This appears to be necessary in order to create the alias 'A' record
+      DisableExecuteApiEndpoint: false
+
+  JSCTrackerCustomDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      RegionalCertificateArn: !ImportValue 'domain-certificate-DomainCertificateArn'
+      DomainName: !Ref JSCTrackerDomainName
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  JSCTrackerDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref JSCTrackerDomainName
+      Type: A
+      AliasTarget:
+         DNSName: !GetAtt
+          - JSCTrackerCustomDomainName
+          - RegionalDomainName
+         # https://docs.aws.amazon.com/general/latest/gr/apigateway.html
+         HostedZoneId: Z2OJLYMUO9EFXC
+
+  JSCTrackerBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      BasePath: ''
+      DomainName: !Ref JSCTrackerDomainName
+      RestApiId: !Ref JSCTrackerApi
+      Stage: 'prod'
 
   JSCTrackerUserResource:
     Type: AWS::ApiGateway::Resource
@@ -19,7 +62,7 @@ Resources:
       PathPart: "{user_id}"
       RestApiId: !Ref JSCTrackerApi
 
-  GetUserInfoMethod:
+  JSCTrackerGetUserInfoMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref JSCTrackerApi
@@ -36,90 +79,15 @@ Resources:
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetUserInfoLambdaFunctionArn
 
-  # JSCTrackerContactsResource:
-  #   Type: AWS::ApiGateway::Resource
-  #   Properties:
-  #     ParentId: !Ref JSCTrackerUserIdResource
-  #     PathPart: contacts
-  #     RestApiId: !Ref JSCTrackerApi
-
-  # AddContactMethod:
-  #   Type: AWS::ApiGateway::Method
-  #   Properties:
-  #     RestApiId: !Ref JSCTrackerApi
-  #     ResourceId: !Ref JSCTrackerContactsResource
-  #     HttpMethod: POST
-  #     AuthorizationType: NONE
-  #     RequestParameters:
-  #       method.request.path.user_id: true
-  #     Integration:
-  #       Type: AWS_PROXY
-  #       IntegrationHttpMethod: POST
-  #       Uri: !Sub "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:373705399158:function:JSCTrackerAddContact/invocations"
-
-  # JSCTrackerContactResource:
-  #   Type: AWS::ApiGateway::Resource
-  #   Properties:
-  #     ParentId: !Ref JSCTrackerUserIdResource
-  #     PathPart: contact
-  #     RestApiId: !Ref JSCTrackerApi
-
-  # JSCTrackerContactIdResource:
-  #   Type: AWS::ApiGateway::Resource
-  #   Properties:
-  #     ParentId: !Ref JSCTrackerContactResource
-  #     PathPart: "{contact_id}"
-  #     RestApiId: !Ref JSCTrackerApi
-
-  # UpdateContactMethod:
-  #   Type: AWS::ApiGateway::Method
-  #   Properties:
-  #     RestApiId: !Ref JSCTrackerApi
-  #     ResourceId: !Ref JSCTrackerContactIdResource
-  #     HttpMethod: PATCH
-  #     AuthorizationType: NONE
-  #     RequestParameters:
-  #       method.request.path.user_id: true
-  #       method.request.path.contact_id: true
-  #     Integration:
-  #       Type: AWS_PROXY
-  #       IntegrationHttpMethod: POST
-  #       Uri: !Sub "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:373705399158:function:JSCTrackerUpdateContact/invocations"
-
-  # DeactivateContactResource:
-  #   Type: AWS::ApiGateway::Resource
-  #   Properties:
-  #     ParentId: !Ref JSCTrackerContactIdResource
-  #     PathPart: deactivate
-  #     RestApiId: !Ref JSCTrackerApi
-
-  # DeactivateContactMethod:
-  #   Type: AWS::ApiGateway::Method
-  #   Properties:
-  #     RestApiId: !Ref JSCTrackerApi
-  #     ResourceId: !Ref DeactivateContactResource
-  #     HttpMethod: PUT
-  #     AuthorizationType: NONE
-  #     RequestParameters:
-  #       method.request.path.user_id: true
-  #       method.request.path.contact_id: true
-  #     Integration:
-  #       Type: AWS_PROXY
-  #       IntegrationHttpMethod: POST
-  #       Uri: !Sub "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:373705399158:function:JSCTrackerDeactivateContact/invocations"
-
   JSCTrackerDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties:
       RestApiId: !Ref JSCTrackerApi
       StageName: prod
     DependsOn:
-      - GetUserInfoMethod
-      # - AddContactMethod
-      # - UpdateContactMethod
-      # - DeactivateContactMethod
+      - JSCTrackerGetUserInfoMethod
 
-  LambdaPermissionGetUserInfo:
+  JSCTrackerLambdaPermissionGetUserInfo:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
@@ -127,40 +95,29 @@ Resources:
         !ImportValue 'jsc-tracker-lambda-JSCTrackerGetUserInfoLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
-  # LambdaPermissionAddContact:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: arn:aws:lambda:us-west-2:373705399158:function:JSCTrackerAddContact
-  #     Principal: apigateway.amazonaws.com
-
-  # LambdaPermissionUpdateContact:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: arn:aws:lambda:us-west-2:373705399158:function:JSCTrackerUpdateContact
-  #     Principal: apigateway.amazonaws.com
-
-  # LambdaPermissionDeactivateContact:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: arn:aws:lambda:us-west-2:373705399158:function:JSCTrackerDeactivateContact
-  #     Principal: apigateway.amazonaws.com
-
 Outputs:
   JSCTrackerApiId:
     Description: ID of the REST API
     Value: !Ref JSCTrackerApi
     Export:
       Name: !Sub '${AWS::StackName}-JSCTrackerApiId'
+
+  JSCTrackerRegionalDomainName:
+    Description: Regional domain name of the API
+    Value: !GetAtt
+      - JSCTrackerCustomDomainName
+      - RegionalDomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerRegionalDomainName'
+
   JSCTrackerApiRootResourceId:
     Description: Root resource ID of the API
     Value: !GetAtt JSCTrackerApi.RootResourceId
     Export:
       Name: !Sub '${AWS::StackName}-JSCTrackerApiRootResourceId'
+
   JSCTrackerGetUserInfoMethodId:
     Description: ID of the GetUserInfo method
-    Value: !Ref GetUserInfoMethod
+    Value: !Ref JSCTrackerGetUserInfoMethod
     Export:
       Name: !Sub '${AWS::StackName}-JSCTrackerGetUserInfoMethodId'
