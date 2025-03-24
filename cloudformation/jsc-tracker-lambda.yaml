@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'CloudFormation template for GetUserInfo Lambda function'
+Description: 'CloudFormation template for JSCTracker Lambda functions'
 
 Resources:
   JSCTrackerSecret:
@@ -32,11 +32,11 @@ Resources:
             Action: secretsmanager:GetSecretValue
             Resource: !Ref JSCTrackerSecret
 
-  JSCTrackerGetUserInfoLambdaFunction:
+  JSCTrackerGetUserUserIdLambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
-      FunctionName: 'JSCTrackerGetUserInfo'
-      Handler: 'get_user_info.lambda_handler'
+      FunctionName: 'JSCTrackerGetUserUserId'
+      Handler: 'get_user_user_id.lambda_handler'
       Role:
         !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
       Code:
@@ -47,8 +47,8 @@ Resources:
       MemorySize: 128
 
 Outputs:
-  JSCTrackerGetUserInfoLambdaFunctionArn:
-    Description: 'ARN of the GetUserInfo Lambda function'
-    Value: !GetAtt JSCTrackerGetUserInfoLambdaFunction.Arn
+  JSCTrackerGetUserUserIdLambdaFunctionArn:
+    Description: 'ARN of the GetUserUserId Lambda function'
+    Value: !GetAtt JSCTrackerGetUserUserIdLambdaFunction.Arn
     Export:
-      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserInfoLambdaFunctionArn'
+      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserUserIdLambdaFunctionArn'

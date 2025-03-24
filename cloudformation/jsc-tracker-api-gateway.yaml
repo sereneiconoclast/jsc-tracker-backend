@@ -48,6 +48,7 @@ Resources:
       RestApiId: !Ref JSCTrackerApi
       Stage: 'prod'
 
+  # /user
   JSCTrackerUserResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -55,18 +56,20 @@ Resources:
       PathPart: user
       RestApiId: !Ref JSCTrackerApi
 
-  JSCTrackerUserIdResource:
+  # /user/{user_id}
+  JSCTrackerUserUserIdResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !Ref JSCTrackerUserResource
       PathPart: "{user_id}"
       RestApiId: !Ref JSCTrackerApi
 
-  JSCTrackerGetUserInfoMethod:
+  # GET /user/{user_id}
+  JSCTrackerGetUserUserIdMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerUserIdResource
+      ResourceId: !Ref JSCTrackerUserUserIdResource
       HttpMethod: GET
       AuthorizationType: NONE
       RequestParameters:
@@ -74,10 +77,11 @@ Resources:
         method.request.querystring.brief: false
       Integration:
         Type: AWS_PROXY
+        # This must be POST, per https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apigateway-method-integration.html
         IntegrationHttpMethod: POST
         Uri: !Sub
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
-          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetUserInfoLambdaFunctionArn
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetUserUserIdLambdaFunctionArn
 
   JSCTrackerDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -85,14 +89,14 @@ Resources:
       RestApiId: !Ref JSCTrackerApi
       StageName: prod
     DependsOn:
-      - JSCTrackerGetUserInfoMethod
+      - JSCTrackerGetUserUserIdMethod
 
-  JSCTrackerLambdaPermissionGetUserInfo:
+  JSCTrackerLambdaPermissionGetUserUserId:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       FunctionName:
-        !ImportValue 'jsc-tracker-lambda-JSCTrackerGetUserInfoLambdaFunctionArn'
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerGetUserUserIdLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
 Outputs:
@@ -116,8 +120,8 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-JSCTrackerApiRootResourceId'
 
-  JSCTrackerGetUserInfoMethodId:
-    Description: ID of the GetUserInfo method
-    Value: !Ref JSCTrackerGetUserInfoMethod
+  JSCTrackerGetUserUserIdMethodId:
+    Description: ID of the GetUserUserId method
+    Value: !Ref JSCTrackerGetUserUserIdMethod
     Export:
-      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserInfoMethodId'
+      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserUserIdMethodId'
