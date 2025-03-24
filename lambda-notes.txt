@@ -19,6 +19,7 @@ Steps to add a new method:
 
 {
   # This is an example event object.
+  # The most important fields are event['body'] (parse as JSON) and event.dig('pathParameters', 'user_id')
   "event": {
     "resource": "/user/{user_id}",
     "path": "/user/greg.meyers.1138@gmail.com",

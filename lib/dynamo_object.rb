@@ -3,6 +3,9 @@ require_relative 'db_fields/require_all'
 class DynamoObject
   # Subclass must define pk
 
+  class NotFoundError < StandardError
+  end
+
   def self.inherited base
     pk = DbFields::ReadOnlyField.new(
       owner: base, name: :pk, label: '')
@@ -120,6 +123,10 @@ class DynamoObject
     db.write(item: to_dynamodb)
   end
 
+  # TODO: If a normal (non-administrator) user tries to access a record
+  # to which they shouldn't have visibility, raise DynamoObject::NotFoundError
+  # Normal users should be able to read the user records of members of their
+  # own JSC
   def self.from_dynamodb(dynamodb_record:, **kwargs)
     return nil unless dynamodb_record
     raise "Call this on a subclass" if self == DynamoObject
@@ -136,6 +143,13 @@ class DynamoObject
 
     params.merge!(kwargs)
     new(**params).tap { |o| o.after_load_hook }
+  end
+
+  # Raise NotFoundError if block returns nil
+  def self.check_for_nil!(params, ok_if_nil: false)
+    result = yield
+    return result if ok_if_nil || result
+    raise NotFoundError.new("No such #{self}: #{params}")
   end
 
   # Override to do additional setup after load from DynamoDB

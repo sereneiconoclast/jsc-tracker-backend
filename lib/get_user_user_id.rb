@@ -1,4 +1,4 @@
-require_relative 'jsc/user'
+require_relative 'jsc/require_all'
 
 # GET /user/{user_id}
 def lambda_handler(event:, context:)
@@ -11,6 +11,11 @@ def lambda_handler(event:, context:)
       jsc: nil,
       jsc_members: nil
     })
+  }
+rescue DynamoObject::NotFoundError => e
+  {
+    statusCode: 404,
+    body: JSON.generate({ error: e.message })
   }
 rescue StandardError => e
   {

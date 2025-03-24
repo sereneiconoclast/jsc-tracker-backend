@@ -70,8 +70,13 @@ module Jsc
       email.downcase.email_to_sha1
     end
 
-    def self.read(email:)
-      from_dynamodb(dynamodb_record: db.read(pk: pk(email: email)))
+    # If no such user exists with that email:
+    #   - Return nil if ok_if_missing is true.
+    #   - Raise NotFoundError if ok_if_missing is false.
+    def self.read(email:, ok_if_missing: false)
+      check_for_nil!("email: #{email}", ok_if_nil: ok_if_missing) do
+        from_dynamodb(dynamodb_record: db.read(pk: pk(email: email)))
+      end
     end
 
     def after_load_hook
