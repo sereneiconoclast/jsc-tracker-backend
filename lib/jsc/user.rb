@@ -3,6 +3,19 @@ require 'set'
 require 'dynamo_object'
 require_relative '../application_config'
 
+# See if we can index this by 'sub', a mandatory, unique ID assigned to
+# every Cognito user.
+# From https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+#
+# Subject - Identifier for the End-User at the Issuer
+#
+# This would allow support for changing email address
+# without breaking the connection to the database.
+#
+# See if it's possible to pull the following fields from Cognito:
+# given_name (generally, first name)
+# family_name (generally, last name)
+
 module Jsc
   class User < DynamoObject
     # See https://developers.google.com/identity/protocols/oauth2/native-app
@@ -44,6 +57,15 @@ module Jsc
     field(:login_expires_at, field_class: DbFields::TimestampField) { nil }
     # Record the time of last login
     field(:last_logins_at, to_json: ->(v) { v == ['0'] ? [] : v }) { ['0'] }
+
+    # :email is excluded because it is the primary key
+    # Changing email will need to be done by copying the record
+    ALLOWED_IN_USER_USER_ID_POST = %i(
+      name
+      slack_profile
+      twopager
+      cmf
+    )
 
     # Generated during login-challenge process, saved to database for confirmation
     def self.google_generate_state
