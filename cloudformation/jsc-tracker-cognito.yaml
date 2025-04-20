@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cognito User Pool with Google as Identity Provider
+
+# & aws cloudformation create-stack --region us-west-2
+#    --stack-name jsc-tracker-cognito
+#    --template-body file://cloudformation/jsc-tracker-cognito.yaml
+#    --capabilities CAPABILITY_NAMED_IAM
+#    --parameters "ParameterKey=GoogleClientSecret, ParameterValue=...."
+
+Parameters:
+  # Created via https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid
+  GoogleClientId:
+    Type: String
+    Default: 167288598000-cthra74osno792ki091c1kl4fsk6v9hs.apps.googleusercontent.com
+    Description: Google OAuth client ID
+  GoogleClientSecret:
+    Type: String
+    Default: ''
+    Description: Google OAuth client secret (stored securely)
+
+Resources:
+  JSCTrackerCognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: JSCTrackerUserPool
+      AutoVerifiedAttributes:
+        - email
+      AliasAttributes:
+        - email
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+        - Name: given_name
+          Required: true
+          Mutable: true
+        - Name: family_name
+          Required: true
+          Mutable: true
+        - Name: phone_number
+          Required: true
+          Mutable: true
+
+  JSCTrackerCognitoIdentityProviderGoogle:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      ProviderName: Google
+      ProviderType: Google
+      UserPoolId: !Ref JSCTrackerCognitoUserPool
+      AttributeMapping:
+        email: email
+        given_name: given_name
+        family_name: family_name
+        phone_number: phone_number
+      ProviderDetails:
+        client_id: !Ref GoogleClientId
+        client_secret: !Ref GoogleClientSecret
+        authorize_scopes: openid email phone profile
+
+  JSCTrackerCognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: JSCTrackerCognitoIdentityProviderGoogle
+    Properties:
+      ClientName: WebClient
+      UserPoolId: !Ref JSCTrackerCognitoUserPool
+      GenerateSecret: false
+      CallbackURLs:
+        - https://jsc-tracker.infinitequack.net/auth-receiver
+      LogoutURLs:
+        - https://jsc-tracker.infinitequack.net/logout
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid # permits OIDC (OpenID Connect), evidence of the user's identity
+        # See https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
+        - profile # includes family_name, given_name
+        - email # includes email
+        - phone # includes phone_number
+      AllowedOAuthFlowsUserPoolClient: true
+      SupportedIdentityProviders:
+        - Google
+
+Outputs:
+  JSCTrackerCognitoUserPoolId:
+    Description: The user pool ID
+    Value: !GetAtt JSCTrackerCognitoUserPool.UserPoolId
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerCognitoUserPoolId'
+
+  JSCTrackerCognitoUserPoolArn:
+    Description: The user pool ARN
+    Value: !GetAtt JSCTrackerCognitoUserPool.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerCognitoUserPoolArn'
+
+  JSCTrackerCognitoUserPoolClientId:
+    Description: The user pool client ID
+    Value: !Ref JSCTrackerCognitoUserPoolClient
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerCognitoUserPoolClientId'
+
+  JSCTrackerCognitoUserPoolAppClientId:
+    Description: The user pool app client ID
+    Value: !GetAtt JSCTrackerCognitoUserPoolClient.ClientId
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerCognitoUserPoolAppClientId'
+
+  HostedUIURL:
+    Value: !Sub >-
+      https://${JSCTrackerCognitoUserPool}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${JSCTrackerCognitoUserPoolClient}&response_type=code&scope=email+openid+profile&redirect_uri=https://mydomain.net/callback
