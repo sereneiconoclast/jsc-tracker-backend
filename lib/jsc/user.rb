@@ -22,19 +22,9 @@ module Jsc
     # and https://console.cloud.google.com/apis/credentials?project=infinitequack-bl-1687379300799
     # TODO: Update
 
-    GOOGLE_CLIENT_ID = 'history-eraser-button'
-    GOOGLE_CLIENT_SECRET = 'history-eraser-button'
-
-    # From browser's perspective it is port 443 on the CloudFront public-facing side
-    GOOGLE_OAUTH_REDIRECT_URI = "https://#{CNAME_FQDN}/oauth2callback"
-    GOOGLE_OAUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'
-    GOOGLE_TOKEN_ENDPOINT = "https://www.googleapis.com/oauth2/v4/token"
-    GOOGLE_CODE_VERIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
-    GOOGLE_RAND_CODE_VERIFIER_CHAR = ->(_) { GOOGLE_CODE_VERIFIER_CHARS[rand(GOOGLE_CODE_VERIFIER_CHARS.size)] }
-    GOOGLE_RAND_CODE_VERIFIER_SIZE = 60
-
     MAX_LOGINS_TO_TRACK = 6
 
+    field(:sub) { nil } # The 'subject'
     field(:name) { 'Tyl Pherry' }
     field(:email) { 'me@here.com' }
     # Open your Slack profile, click three dots, then "Copy link to profile"
@@ -67,53 +57,36 @@ module Jsc
       cmf
     )
 
-    # Generated during login-challenge process, saved to database for confirmation
-    def self.google_generate_state
-      SecureRandom.hex(16)
+    def self.pk(sub:)
+      "#{sub}_user"
     end
 
-    # Generated during login-challenge process, saved to database for confirmation
-    def self.google_generate_code_verifier
-      (1..GOOGLE_RAND_CODE_VERIFIER_SIZE).map(&GOOGLE_RAND_CODE_VERIFIER_CHAR).join('')
-    end
-
-    def self.pk(email:)
-      "#{email.email_to_sha1}_user"
-    end
-
-    # This utter reliance on the email address means a user cannot change their email address.
-    # We can work around that, when it becomes an issue, by simply copying one user to create
-    # another with the new address.
     def pk
-      @pk ||= self.class.pk(email: email)
+      @pk ||= self.class.pk(sub: sub)
     end
 
     def user_id
-      email.downcase.email_to_sha1
+      sub
     end
 
-    # If no such user exists with that email:
+    # If no such user exists with that sub:
     #   - Return nil if ok_if_missing is true.
     #   - Raise NotFoundError if ok_if_missing is false.
-    def self.read(email:, ok_if_missing: false)
-      check_for_nil!("email: #{email}", ok_if_nil: ok_if_missing) do
-        from_dynamodb(dynamodb_record: db.read(pk: pk(email: email)))
+    def self.read(sub:, ok_if_missing: false)
+      check_for_nil!("sub: #{sub}", ok_if_nil: ok_if_missing) do
+        from_dynamodb(dynamodb_record: db.read(pk: pk(sub: sub)))
       end
     end
 
     def after_load_hook
-      # Ruby note: ''.to_i => 0
-      if login_expires_at && !(google_state.empty? && code_verifier.empty?)
-        self.google_state = self.code_verifier = '' if login_expires_at.to_i < Time.now.to_i
-      end
+      # This may not be needed since Google will expire access tokens
+      super
     end
 
     def mark_login_attempt_succeeded!
-      if last_logins_at.size == 1 && last_logins_at.first == '0'
-        self.last_logins_at = []
-      end
-      last_logins_at << Time.now.to_i.to_s
-      self.last_logins_at = last_logins_at[(-MAX_LOGINS_TO_TRACK)..-1] if last_logins_at.size > MAX_LOGINS_TO_TRACK
+      # TODO: Does this functionality make sense when Google is
+      # authenticating? Perhaps update a "last seen" date, if it's
+      # been longer than N minutes
     end
 
     def to_s
