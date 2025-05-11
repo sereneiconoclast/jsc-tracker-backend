@@ -1,4 +1,5 @@
 require_relative './field'
 require_relative './timestamp_field'
 require_relative './read_only_field'
+require_relative './id_field'
 require_relative './set_field'

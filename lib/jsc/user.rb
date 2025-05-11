@@ -24,7 +24,7 @@ module Jsc
 
     MAX_LOGINS_TO_TRACK = 6
 
-    field(:sub) { nil } # The 'subject'
+    field(:sub, id: true) # string containing digits
     field(:name) { 'Tyl Pherry' }
     field(:email) { 'me@here.com' }
     # Open your Slack profile, click three dots, then "Copy link to profile"
@@ -39,10 +39,6 @@ module Jsc
     field(:archived_contact_id_set) { Set.new }
     # String
     field(:next_contact_id) { 'c0001' }
-    # Random 16-digit hex string
-    field(:google_state) { '' }
-    # Random 60-character string
-    field(:code_verifier) { '' }
     # The Google login is good until this time
     field(:login_expires_at, field_class: DbFields::TimestampField) { nil }
     # Record the time of last login
@@ -57,25 +53,30 @@ module Jsc
       cmf
     )
 
-    def self.pk(sub:)
-      "#{sub}_user"
+    alias_method :user_id, :sub
+
+    class << self
+      def pk(sub:)
+        "#{sub}_user"
+      end
+
+      def fields_from_pk(pk)
+        # Remove '_user' suffix
+        { sub: pk[0..-6] }
+      end
+
+      # If no such user exists with that sub:
+      #   - Return nil if ok_if_missing is true.
+      #   - Raise NotFoundError if ok_if_missing is false.
+      def read(sub:, ok_if_missing: false)
+        check_for_nil!("sub: #{sub}", ok_if_nil: ok_if_missing) do
+          from_dynamodb(dynamodb_record: db.read(pk: pk(sub: sub)))
+        end
+      end
     end
 
     def pk
       @pk ||= self.class.pk(sub: sub)
-    end
-
-    def user_id
-      sub
-    end
-
-    # If no such user exists with that sub:
-    #   - Return nil if ok_if_missing is true.
-    #   - Raise NotFoundError if ok_if_missing is false.
-    def self.read(sub:, ok_if_missing: false)
-      check_for_nil!("sub: #{sub}", ok_if_nil: ok_if_missing) do
-        from_dynamodb(dynamodb_record: db.read(pk: pk(sub: sub)))
-      end
     end
 
     def after_load_hook
@@ -85,8 +86,10 @@ module Jsc
 
     def mark_login_attempt_succeeded!
       # TODO: Does this functionality make sense when Google is
-      # authenticating? Perhaps update a "last seen" date, if it's
-      # been longer than N minutes
+      # authenticating? How about this: Subtract an hour from the access_token
+      # expiration time, and that's the login time. If that matches the time of
+      # the last login, do nothing. If it's newer then record a new successful
+      # login.
     end
 
     def to_s

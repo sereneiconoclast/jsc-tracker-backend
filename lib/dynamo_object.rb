@@ -8,15 +8,15 @@ class DynamoObject
 
   def self.inherited base
     pk = DbFields::ReadOnlyField.new(
-      owner: base, name: :pk, label: '')
+      owner: base, name: :pk)
     created_at = DbFields::TimestampField.new(
-      owner: base, name: :created_at, label: 'Created at'
+      owner: base, name: :created_at
     ) { Time.now }
     modified_at = DbFields::TimestampField.new(
-      owner: base, name: :modified_at, label: 'Modified at'
+      owner: base, name: :modified_at
     ) { Time.now }
     deactivated_at = DbFields::TimestampField.new(
-      owner: base, name: :deactivated_at, label: 'Deactivated at'
+      owner: base, name: :deactivated_at
     ) { nil }
     [pk, created_at, modified_at, deactivated_at].each(&:define_accessor)
     base.instance_variable_set(:@fields,
@@ -32,14 +32,11 @@ class DynamoObject
   # field_class: optional, defaults to Field, can be IdField, SetField
   #   depending on other input
   # id: optional, defaults to false; true for the primary key
-  #   field of the object
-  # label: optional, defaults to name.capitalize, used to render the label
-  #   in HTML forms
-  def self.field name, field_class: nil, id: nil,
-    label: nil, to_json: nil, &default_value
+  #   field(s) of the object, used to calculate #pk
+  # to_json: a lambda for converting to JSON form
+  def self.field name, field_class: nil, id: nil, to_json: nil, &default_value
 
     raise "Already defined #{@fields[name]}" if @fields[name]
-    label ||= name.capitalize
 
     field_class ||= case
       when id then DbFields::IdField
@@ -50,7 +47,6 @@ class DynamoObject
     field = field_class.new(
       owner: self,
       name: name,
-      label: label,
       to_json: to_json,
       &default_value
     )
@@ -66,27 +62,39 @@ class DynamoObject
     field(field_name).from_user_input(input)
   end
 
-  def self.fields(&blk)
-    blk ||= ->(_) { true }
-    @fields.values.find_all(&blk)
+  class << self
+    def fields(&blk)
+      blk ||= ->(_) { true }
+      @fields.values.find_all(&blk)
+    end
+
+    def field_names
+      @fields.keys
+    end
+
+    def id_field_names
+      fields { |f| f.is_a?(DbFields::IdField) }.map(&:name)
+    end
   end
 
-  def fields(&blk)
-    self.class.fields(&blk)
-  end
-
-  def self.field_names
-    @fields.keys
-  end
-
-  def field_names
-    self.class.field_names
+  %i(fields field_names id_field_names).each do |mth_name|
+    define_method(mth_name) do |*args, **kwargs, &blk|
+      self.class.send(mth_name, *args, **kwargs, &blk)
+    end
   end
 
   def initialize(**kwargs)
+    missing_id_fields = id_field_names - kwargs.keys
+    raise "Missing ID fields #{missing_id_fields.join(', ')}" unless missing_id_fields.empty?
     unrecognized = kwargs.keys - field_names
     raise "Unrecognized constructor args for #{self.class}: #{unrecognized.join(', ')}" unless unrecognized.empty?
+
     self.created_at = Time.now.to_i
+
+    id_field_names.each do |field_name|
+      send("initialize_#{field_name}".to_sym, kwargs[field_name])
+    end
+
     fields(&:writable?).each do |field|
       new_val = if kwargs.has_key?(field.name)
         kwargs[field.name]
@@ -123,33 +131,41 @@ class DynamoObject
     db.write(item: to_dynamodb)
   end
 
-  # TODO: If a normal (non-administrator) user tries to access a record
-  # to which they shouldn't have visibility, raise DynamoObject::NotFoundError
-  # Normal users should be able to read the user records of members of their
-  # own JSC
-  def self.from_dynamodb(dynamodb_record:, **kwargs)
-    return nil unless dynamodb_record
-    raise "Call this on a subclass" if self == DynamoObject
+  class << self
+    # TODO: If a normal (non-administrator) user tries to access a record
+    # to which they shouldn't have visibility, raise DynamoObject::NotFoundError
+    # Normal users should be able to read the user records of members of their
+    # own JSC
+    def from_dynamodb(dynamodb_record:, **kwargs)
+      return nil unless dynamodb_record
+      raise "Call this on a subclass" if self == DynamoObject
 
-    writable_fields = fields(&:writable?)
-    writable_field_names = writable_fields.map(&:name)
-    params = dynamodb_record.select do |k, _v|
-      writable_field_names.include?(k)
+      writable_fields = fields(&:writable?)
+      writable_field_names = writable_fields.map(&:name)
+      params = dynamodb_record.select do |k, _v|
+        writable_field_names.include?(k)
+      end
+      writable_fields.each do |field|
+        next unless params.has_key?(field.name)
+        params[field.name] = field.from_dynamodb(params[field.name])
+      end
+
+      params.merge!(fields_from_pk(dynamodb_record[:pk]))
+
+      params.merge!(kwargs)
+      new(**params).tap { |o| o.after_load_hook }
     end
-    writable_fields.each do |field|
-      next unless params.has_key?(field.name)
-      params[field.name] = field.from_dynamodb(params[field.name])
+
+    def fields_from_pk(pk)
+      {}
     end
 
-    params.merge!(kwargs)
-    new(**params).tap { |o| o.after_load_hook }
-  end
-
-  # Raise NotFoundError if block returns nil
-  def self.check_for_nil!(params, ok_if_nil: false)
-    result = yield
-    return result if ok_if_nil || result
-    raise NotFoundError.new("No such #{self}: #{params}")
+    # Raise NotFoundError if block returns nil
+    def check_for_nil!(params, ok_if_nil: false)
+      result = yield
+      return result if ok_if_nil || result
+      raise NotFoundError.new("No such #{self}: #{params}")
+    end
   end
 
   # Override to do additional setup after load from DynamoDB
