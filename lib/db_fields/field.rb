@@ -1,11 +1,10 @@
 module DbFields
   class Field
     def initialize(
-      owner:, name:, label:, markdown: false,
-      to_json: nil, &default_value
+      owner:, name:, to_json: nil, &default_value
     )
       default_value ||= -> { nil }
-      @owner, @name, @label, @markdown, @to_json, @default_value = owner, name, label, markdown, to_json, default_value
+      @owner, @name, @to_json, @default_value = owner, name, to_json, default_value
       raise "Needs an owner" unless owner
       raise "Needs a name" unless name
     end
@@ -24,7 +23,7 @@ module DbFields
       @markdown
     end
 
-    attr_reader :owner, :name, :label
+    attr_reader :owner, :name
 
     def raw_default_value
       @default_value
