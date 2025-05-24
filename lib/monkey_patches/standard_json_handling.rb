@@ -13,7 +13,13 @@ module ::Kernel
     "Access-Control-Max-Age" => "'600'",
   }
 
+  # event:
+  # https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
   def standard_json_handling(event:)
+    access_token_str = event.dig('queryStringParameters', 'access_token')
+    raise AuthenticationFailedError unless access_token_str
+    access_token = access_token_str.parse_google_access_token
+
     origin = event.dig('headers', 'origin')
     unless JSC_CORS_ALLOWED_ORIGINS.include?(origin)
       return({
@@ -25,13 +31,13 @@ module ::Kernel
     response_headers['Access-Control-Allow-Origin'] = origin
 
     body = JSON.parse(event['body'] || '{}')
-    result_hash = yield(body: body)
+    result_hash = yield(body: body, access_token: access_token)
     {
       statusCode: 200,
       headers: response_headers,
       body: JSON.generate(result_hash)
     }
-  rescue DynamoObject::NotFoundError => e
+  rescue DynamoObject::NotFoundError, AuthenticationFailedError => e
     {
       statusCode: 404,
       headers: response_headers,
