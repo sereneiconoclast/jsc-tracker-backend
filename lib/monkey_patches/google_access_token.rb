@@ -2,19 +2,17 @@ require 'net/http'
 require 'json'
 require 'timeout'
 
-class InvalidAccessTokenError < StandardError; end
 class AuthenticationFailedError < StandardError; end
-class TimeoutError < StandardError; end
 
 class String
   # {
-  #   "sub"=>"115...140",
-  #   "name"=>"Gregory Meyers",
-  #   "given_name"=>"Gregory",
-  #   "family_name"=>"Meyers",
-  #   "picture"=>"https://lh3.googleusercontent.com/a/...", # URL of profile picture
-  #   "email"=>"greg.meyers.1138@gmail.com",
-  #   "email_verified"=>true
+  #   sub: "115...140",
+  #   name: "Gregory Meyers",
+  #   given_name: "Gregory",
+  #   family_name: "Meyers",
+  #   picture: "https://lh3.googleusercontent.com/a/...", # URL of profile picture
+  #   email: "greg.meyers.1138@gmail.com",
+  #   email_verified: true
   # }
   def parse_google_access_token
     uri = URI('https://www.googleapis.com/oauth2/v3/userinfo')
@@ -30,14 +28,18 @@ class String
 
       case response
       when Net::HTTPSuccess
-        JSON.parse(response.body)
+        Hash[
+          JSON.parse(response.body).map do |k, v|
+            [k.to_sym, v]
+          end
+        ]
       when Net::HTTPUnauthorized
-        raise InvalidAccessTokenError, 'Invalid Google access token'
+        raise AuthenticationFailedError, 'Invalid Google access token'
       else
         raise AuthenticationFailedError, "Google authentication failed: #{response.code} #{response.message}"
       end
     rescue Timeout::Error
-      raise TimeoutError, 'Google authentication request timed out'
+      raise AuthenticationFailedError, 'Google authentication request timed out'
     rescue JSON::ParserError
       raise AuthenticationFailedError, 'Failed to parse Google authentication response'
     rescue StandardError => e
