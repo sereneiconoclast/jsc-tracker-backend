@@ -26,6 +26,9 @@ module Jsc
 
     field(:sub, id: true) # string containing digits
     field(:name) { 'Tyl Pherry' }
+    field(:given_name) { 'Tyl' }
+    field(:family_name) { 'Pherry' }
+    field(:picture) { 'https://lh3.googleusercontent.com/a/...' }
     field(:email) { 'me@here.com' }
     # Open your Slack profile, click three dots, then "Copy link to profile"
     field(:slack_profile) { 'Slack profile URL' }
@@ -44,16 +47,24 @@ module Jsc
     # Record the time of last login
     field(:last_logins_at, to_json: ->(v) { v == ['0'] ? [] : v }) { ['0'] }
 
-    # :email is excluded because it is the primary key
-    # Changing email will need to be done by copying the record
-    ALLOWED_IN_USER_USER_ID_POST = %i(
+    alias_method :user_id, :sub
+
+    DEFAULTED_FROM_ACCESS_TOKEN = %i(
+      sub
       name
+      given_name
+      family_name
+      picture
+      email
+    )
+
+    # :sub is excluded because it is the primary key
+    ALLOWED_IN_USER_USER_ID_POST = DEFAULTED_FROM_ACCESS_TOKEN + %i(
       slack_profile
       twopager
       cmf
-    )
-
-    alias_method :user_id, :sub
+      contact_info
+    ) - [:sub]
 
     class << self
       def pk(sub:)
