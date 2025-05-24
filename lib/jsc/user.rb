@@ -2,6 +2,8 @@ require 'securerandom'
 require 'set'
 require 'dynamo_object'
 require_relative '../application_config'
+require 'httparty'
+require 'base64'
 
 # See if we can index this by 'sub', a mandatory, unique ID assigned to
 # every Cognito user.
@@ -105,6 +107,17 @@ module Jsc
 
     def to_s
       "#{super} (#{email})"
+    end
+
+    def picture_data
+      return nil unless picture
+      response = HTTParty.get(picture)
+      return nil unless response.success?
+      Base64.strict_encode64(response.body)
+    end
+
+    def to_json_hash
+      super.merge('picture_data' => picture_data)
     end
   end
 end
