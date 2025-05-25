@@ -5,18 +5,9 @@ require_relative '../application_config'
 require 'httparty'
 require 'base64'
 
-# See if we can index this by 'sub', a mandatory, unique ID assigned to
-# every Cognito user.
 # From https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 #
 # Subject - Identifier for the End-User at the Issuer
-#
-# This would allow support for changing email address
-# without breaking the connection to the database.
-#
-# See if it's possible to pull the following fields from Cognito:
-# given_name (generally, first name)
-# family_name (generally, last name)
 
 module Jsc
   class User < DynamoObject

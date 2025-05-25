@@ -7,7 +7,7 @@ def lambda_handler(event:, context:)
     user_id = event.dig('pathParameters',  'user_id')
 
     if user_id == '-'
-      user_id = access_token['sub']
+      user_id = access_token[:sub]
       user = Jsc::User.read(sub: user_id, ok_if_missing: true)
       unless user
         args = access_token.keep_if do |k, _v|
