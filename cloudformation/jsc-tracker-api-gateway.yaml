@@ -95,14 +95,17 @@ Resources:
       ResourceId: !Ref JSCTrackerUserUserIdResource
       HttpMethod: OPTIONS
       AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
       Integration:
         Type: MOCK
         RequestTemplates:
           application/json: '{"statusCode": 200}'
         IntegrationResponses:
           - StatusCode: 200
+            SelectionPattern: '.*'
             ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'https://static.infinitequack.net,http://localhost:3000'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
               method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
               method.response.header.Access-Control-Max-Age: "'600'"
@@ -144,14 +147,17 @@ Resources:
       ResourceId: !Ref JSCTrackerUserResource
       HttpMethod: OPTIONS
       AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
       Integration:
         Type: MOCK
         RequestTemplates:
           application/json: '{"statusCode": 200}'
         IntegrationResponses:
           - StatusCode: 200
+            SelectionPattern: '.*'
             ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'https://static.infinitequack.net,http://localhost:3000'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
               method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
               method.response.header.Access-Control-Max-Age: "'600'"
@@ -172,9 +178,12 @@ Resources:
     Properties:
       RestApiId: !Ref JSCTrackerApi
       StageName: prod
+      Description: !Sub "Deployment ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}-${AWS::StackId}"
     DependsOn:
       - JSCTrackerGetUserUserIdMethod
       - JSCTrackerPostUserUserIdMethod
+      - JSCTrackerOptionsUserUserIdMethod
+      - JSCTrackerOptionsUserMethod
 
   JSCTrackerLambdaPermissionGetUserUserId:
     Type: AWS::Lambda::Permission
