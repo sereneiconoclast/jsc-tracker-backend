@@ -106,6 +106,15 @@ class DynamoObject
     end
   end
 
+  def update(**kwargs)
+    fields(&:writable?).each do |field|
+      next unless kwargs.has_key?(field.name)
+      new_val = kwargs[field.name]
+      public_send("#{field.name}=".to_sym, new_val)
+      field.validate!(self)
+    end
+  end
+
   def to_dynamodb
     r = { pk: pk }
     fields(&:normal?).each do |field|
