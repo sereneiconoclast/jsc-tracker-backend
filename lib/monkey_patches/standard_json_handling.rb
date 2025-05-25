@@ -1,5 +1,6 @@
 require 'json'
 require 'dynamo_object'
+require 'active_support/core_ext/hash/keys' # symbolize_keys
 
 module ::Kernel
   JSC_CORS_ALLOWED_ORIGINS = %w(
@@ -31,7 +32,7 @@ module ::Kernel
     response_headers['Access-Control-Allow-Origin'] = origin
 
     body = JSON.parse(event['body'] || '{}')
-    result_hash = yield(body: body, access_token: access_token)
+    result_hash = yield(body: body.symbolize_keys, access_token: access_token)
     {
       statusCode: 200,
       headers: response_headers,

@@ -106,6 +106,7 @@ class DynamoObject
     end
   end
 
+  # Symbols as keys
   def update(**kwargs)
     fields(&:writable?).each do |field|
       next unless kwargs.has_key?(field.name)
