@@ -3,7 +3,7 @@ require 'json'
 
 # POST /user/{user_id}
 def lambda_handler(event:, context:)
-  standard_json_handling(event: event) do |body|
+  standard_json_handling(event: event) do |body:, access_token:|
     user = Jsc::User.read(sub: event.dig('pathParameters', 'user_id'))
 
     body.keep_if do |k, _v|
