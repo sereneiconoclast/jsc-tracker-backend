@@ -1,9 +1,7 @@
-require 'securerandom'
 require 'set'
 require 'dynamo_object'
 require_relative '../application_config'
 require 'httparty'
-require 'base64'
 
 # From https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 #
@@ -34,7 +32,7 @@ module Jsc
     # Set<String>
     field(:archived_contact_id_set) { Set.new }
     # String
-    field(:next_contact_id) { 'c0001' }
+    field(:next_contact_id) { 'c0000' }
     # The Google login is good until this time
     field(:login_expires_at, field_class: DbFields::TimestampField) { nil }
     # Record the time of last login
@@ -81,6 +79,16 @@ module Jsc
 
     def pk
       @pk ||= self.class.pk(sub: sub)
+    end
+
+    def add_contact
+      contact_id = self.next_contact_id
+      self.next_contact_id = contact_id.succ
+      self.contact_id_set << contact_id
+      c = Contact.new(sub: self.sub, contact_id: contact_id)
+      c.write!
+      write!
+      c
     end
 
     def after_load_hook
