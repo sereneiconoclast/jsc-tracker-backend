@@ -19,11 +19,22 @@ def lambda_handler(event:, context:)
     else
       user = Jsc::User.read(sub: user_id)
     end
+
+    # Load the user's most recent contacts
+    # Sort contact IDs in reverse order (most recent first) and take first 20
+    contacts = user.contact_id_set.sort { |a, b| b <=> a }.take(20).
+      filter_map do |contact_id|
+        Jsc::Contact.read(
+          sub: user.sub, contact_id: contact_id, ok_if_missing: true
+        )&.to_json_hash
+      end
+
     users = [user.to_json_hash].compact
     {
       users: users,
+      contacts: contacts,
       jsc: nil,
-      jsc_members: nil
+      jsc_members: nil,
     }
   end
 end # lambda_handler
