@@ -2,7 +2,7 @@ The DynamoDB database exists, in region us-west-2, and has this ARN: arn:aws:dyn
 
 This document describes the database schema. Note the following terms used in this schema:
 
-* The 'emailsha1' is the 40-character, lowercased, hexadecimal SHA1 of the email address.
+* The 'sub' is the string assigned to the user by Google. This is a digit string like '123456789012345678901'.
 * All fields are strings, or arrays of strings, unless otherwise specified.
 * All timestamps are expressed as seconds since the epoch (January 1, 1970) as a digit string.
 * All entries have a timestamp field 'created_at' which is given a value when the row is added, and then never changed.
@@ -25,7 +25,7 @@ deactivated_at: <timestamp digit-string> or "0" if active
 
 User:
 
-pk: <emailsha1>-user
+pk: <sub>-user
 name: <full name>
 email: <email address>
 slack_profile: <url string> or ""
@@ -45,11 +45,11 @@ last_logins_at: <List of up to 6 timestamp digit-string> or ["0"] if never logge
 JSC:
 
 pk: <jsc-number>-members
-members: [<emailsha1>, <emailsha1>, ...]
+members: [<sub>, <sub>, ...]
 
 Details on a particular contact:
 
-pk: <emailsha1>-c0000
+pk: <sub>-c0000
 name: "Jane Doe"
 contact_info: <markdown string> or ""
 notes: <url string> or ""
