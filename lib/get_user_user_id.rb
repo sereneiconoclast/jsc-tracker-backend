@@ -28,6 +28,8 @@ def lambda_handler(event:, context:)
           sub: user.sub, contact_id: contact_id, ok_if_missing: true
         )&.to_json_hash
       end
+    # TODO: When the given contact ID couldn't be found, it should be deleted
+    # from contact_id_set
 
     users = [user.to_json_hash].compact
     {
