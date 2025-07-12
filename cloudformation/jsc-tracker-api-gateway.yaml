@@ -84,6 +84,14 @@ Resources:
       PathPart: new
       RestApiId: !Ref JSCTrackerApi
 
+  # /user/{user_id}/contact/{contact_id}
+  JSCTrackerUserUserIdContactContactIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerUserUserIdContactResource
+      PathPart: "{contact_id}"
+      RestApiId: !Ref JSCTrackerApi
+
   # GET /user/{user_id}
   JSCTrackerGetUserUserIdMethod:
     Type: AWS::ApiGateway::Method
@@ -172,6 +180,58 @@ Resources:
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostUserUserIdContactNewLambdaFunctionArn
 
+  # POST /user/{user_id}/contact/{contact_id}
+  JSCTrackerPostUserUserIdContactContactIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerUserUserIdContactContactIdResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.user_id: true
+        method.request.path.contact_id: true
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostUserUserIdContactContactIdLambdaFunctionArn
+
+  # OPTIONS /user/{user_id}/contact/{contact_id}
+  JSCTrackerOptionsUserUserIdContactContactIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerUserUserIdContactContactIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '.*'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Max-Age: "'600'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Max-Age: true
+          ResponseModels:
+            application/json: Empty
+
   # OPTIONS /user/{user_id}/contact/new
   JSCTrackerOptionsUserUserIdContactNewMethod:
     Type: AWS::ApiGateway::Method
@@ -250,8 +310,10 @@ Resources:
       - JSCTrackerGetUserUserIdMethod
       - JSCTrackerPostUserUserIdMethod
       - JSCTrackerPostUserUserIdContactNewMethod
+      - JSCTrackerPostUserUserIdContactContactIdMethod
       - JSCTrackerOptionsUserUserIdMethod
       - JSCTrackerOptionsUserUserIdContactNewMethod
+      - JSCTrackerOptionsUserUserIdContactContactIdMethod
       - JSCTrackerOptionsUserMethod
 
   JSCTrackerLambdaPermissionGetUserUserId:
@@ -276,6 +338,14 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName:
         !ImportValue 'jsc-tracker-lambda-JSCTrackerPostUserUserIdContactNewLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionPostUserUserIdContactContactId:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostUserUserIdContactContactIdLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
 Outputs:

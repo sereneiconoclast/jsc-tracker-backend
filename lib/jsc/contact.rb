@@ -13,6 +13,14 @@ module Jsc
 
     # Timestamps and deactivation handled by DynamoObject
 
+    # Fields allowed to be updated via POST /user/{user_id}/contact/{contact_id}
+    ALLOWED_IN_CONTACT_POST = %i(
+      name
+      contact_info
+      notes
+      status
+    )
+
     class << self
       def pk(sub:, contact_id:)
         "#{sub}-#{contact_id}"
