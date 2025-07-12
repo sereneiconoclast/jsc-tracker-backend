@@ -50,7 +50,7 @@ module Jsc
     )
 
     # :sub is excluded because it is the primary key
-    ALLOWED_IN_USER_USER_ID_POST = DEFAULTED_FROM_ACCESS_TOKEN + %i(
+    ALLOWED_IN_USER_POST = DEFAULTED_FROM_ACCESS_TOKEN + %i(
       slack_profile
       twopager
       cmf

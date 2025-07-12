@@ -7,7 +7,7 @@ def lambda_handler(event:, context:)
     user = Jsc::User.read(sub: event.dig('pathParameters', 'user_id'))
 
     body.keep_if do |k, _v|
-      Jsc::User::ALLOWED_IN_USER_USER_ID_POST.include?(k)
+      Jsc::User::ALLOWED_IN_USER_POST.include?(k)
     end
 
     user.update(**body)
