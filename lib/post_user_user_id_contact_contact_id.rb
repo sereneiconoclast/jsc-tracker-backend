@@ -26,7 +26,6 @@ require 'json'
 # curl -X POST -v -H "Origin: http://localhost:3000" \
 #   --json '{"notes": "http://www.yahoo.com/"}' \
 #   'https://jsc-tracker.infinitequack.net/user/115610831205855378140/contact/c0000?access_token=ya29....0178'
-#
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |body:, access_token:|
     user_id = event.dig('pathParameters', 'user_id')

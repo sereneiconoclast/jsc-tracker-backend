@@ -25,8 +25,11 @@ deactivated_at: <timestamp digit-string> or "0" if active
 
 User:
 
-pk: <sub>-user
+pk: <sub>_user
 name: <full name>
+given_name: <first name>
+family_name: <last name>
+picture: <Google profile picture URL>
 email: <email address>
 slack_profile: <url string> or ""
 twopager: <url string> or ""
