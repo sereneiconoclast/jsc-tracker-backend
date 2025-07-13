@@ -81,6 +81,18 @@ module Jsc
       @pk ||= self.class.pk(sub: sub)
     end
 
+    def admin?
+      $g.admin?(self)
+    end
+
+    def grant_admin!
+      $g.grant_admin!(self)
+    end
+
+    def revoke_admin!
+      $g.revoke_admin!(self)
+    end
+
     def add_contact
       contact_id = self.next_contact_id
       self.next_contact_id = contact_id.succ

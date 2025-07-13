@@ -47,7 +47,7 @@ last_logins_at: <List of up to 6 timestamp digit-string> or ["0"] if never logge
 
 JSC:
 
-pk: <jsc-number>-members
+pk: <jsc-number>_members
 members: [<sub>, <sub>, ...]
 
 Details on a particular contact:
@@ -57,3 +57,8 @@ name: "Jane Doe"
 contact_info: <markdown string> or ""
 notes: <url string> or ""
 status: <markdown string> or ""
+
+Global information:
+
+pk: $admins
+user_id_list: [<sub>, <sub>]
