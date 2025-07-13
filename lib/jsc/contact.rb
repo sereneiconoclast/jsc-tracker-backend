@@ -23,13 +23,13 @@ module Jsc
 
     class << self
       def pk(sub:, contact_id:)
-        "#{sub}-#{contact_id}"
+        "#{sub}_#{contact_id}"
       end
 
       def fields_from_pk(pk)
-        # pk is "#{sub}-#{contact_id}"
-        if pk =~ /^(\d+)-c\d{4}$/
-          sub, contact_id = pk.split('-', 2)
+        # pk is "#{sub}_#{contact_id}"
+        if pk =~ /^(\d+)_c\d{4}$/
+          sub, contact_id = pk.split('_', 2)
           { sub: sub, contact_id: contact_id }
         else
           raise "Invalid pk format for Contact: #{pk}"

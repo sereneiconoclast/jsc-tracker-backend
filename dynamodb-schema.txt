@@ -52,7 +52,7 @@ members: [<sub>, <sub>, ...]
 
 Details on a particular contact:
 
-pk: <sub>-c0000
+pk: <sub>_c0000
 name: "Jane Doe"
 contact_info: <markdown string> or ""
 notes: <url string> or ""
