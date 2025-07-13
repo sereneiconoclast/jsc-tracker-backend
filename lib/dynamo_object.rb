@@ -58,6 +58,12 @@ class DynamoObject
     self.class[name]
   end
 
+  def prepend_id_to_field(name, new_id)
+    the_field = field(name)
+    raise "Not an IdListField: #{name}" unless the_field.respond_to?(:prepend_id)
+    the_field.prepend_id(self, new_id)
+  end
+
   def parse_input(field_name, input)
     field(field_name).from_user_input(input)
   end
@@ -195,6 +201,6 @@ class DynamoObject
   end
 
   def to_s
-    "#{self.class}: #{pk}"
+    "#{self.class}(#{pk})"
   end
 end

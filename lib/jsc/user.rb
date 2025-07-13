@@ -84,8 +84,7 @@ module Jsc
     def add_contact
       contact_id = self.next_contact_id
       self.next_contact_id = contact_id.succ
-      # Use the IdListField's prepend_id method to add to front of list
-      self.class[:contact_id_list].prepend_id(self, contact_id)
+      prepend_id_to_field(:contact_id_list, contact_id)
       c = Contact.new(sub: self.sub, contact_id: contact_id)
       c.write!
       write!
