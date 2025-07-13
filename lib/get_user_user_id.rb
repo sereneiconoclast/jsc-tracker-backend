@@ -21,15 +21,15 @@ def lambda_handler(event:, context:)
     end
 
     # Load the user's most recent contacts
-    # Sort contact IDs in reverse order (most recent first) and take first 20
-    contacts = user.contact_id_set.sort { |a, b| b <=> a }.take(20).
+    # The contact_id_list is already ordered with most recent first, so just take first 20
+    contacts = user.contact_id_list.take(20).
       filter_map do |contact_id|
         Jsc::Contact.read(
           sub: user.sub, contact_id: contact_id, ok_if_missing: true
         )&.to_json_hash
       end
     # TODO: When the given contact ID couldn't be found, it should be deleted
-    # from contact_id_set
+    # from contact_id_list
 
     users = [user.to_json_hash].compact
     {

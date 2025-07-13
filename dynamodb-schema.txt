@@ -36,8 +36,8 @@ twopager: <url string> or ""
 cmf: <markdown string> or ""
 contact_info: <markdown string> or ""
 jsc: "0" (indicating this person is a superuser) or "-1" (indicates a normal user not in any JSC) or the JSC number as a digit string not starting with a zero
-contact_id_set: ["c0000", "c0001", ...] or ["0"] if none
-archived_contact_id_set: ["c0000", "c0001", ...] or ["0"] if none
+contact_id_list: ["c0000", "c0001", ...] or [] if none (ordered with most recently modified first)
+archived_contact_id_list: ["c0000", "c0001", ...] or [] if none (ordered with most recently archived first)
 next_contact_id: 'c0001'
   # These are used by the Google login process
   google_state: <random 16-digit hex string>

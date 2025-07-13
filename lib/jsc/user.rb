@@ -27,10 +27,10 @@ module Jsc
     field(:cmf) { 'Candidate-Market Fit goes here' }
     field(:contact_info) { 'Contact Info goes here' }
     field(:jsc, to_json: ->(v) { v == '-1' ? nil : v }) { '-1' }
-    # Set<String>
-    field(:contact_id_set) { Set.new }
-    # Set<String>
-    field(:archived_contact_id_set) { Set.new }
+    # Array<String> - ordered list of contact IDs, most recent first
+    field(:contact_id_list, field_class: DbFields::IdListField) { [] }
+    # Array<String> - ordered list of archived contact IDs
+    field(:archived_contact_id_list, field_class: DbFields::IdListField) { [] }
     # String
     field(:next_contact_id) { 'c0000' }
     # The Google login is good until this time
@@ -84,7 +84,8 @@ module Jsc
     def add_contact
       contact_id = self.next_contact_id
       self.next_contact_id = contact_id.succ
-      self.contact_id_set << contact_id
+      # Use the IdListField's prepend_id method to add to front of list
+      self.class[:contact_id_list].prepend_id(self, contact_id)
       c = Contact.new(sub: self.sub, contact_id: contact_id)
       c.write!
       write!
