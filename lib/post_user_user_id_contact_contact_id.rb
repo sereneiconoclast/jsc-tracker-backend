@@ -44,6 +44,10 @@ def lambda_handler(event:, context:)
     contact.update(**body)
     contact.write!
 
+    # Move the contact to the front of the user's contact list
+    user.prepend_id_to_field(:contact_id_list, contact_id)
+    user.write!
+
     # Return the portion we accepted
     body
   end
