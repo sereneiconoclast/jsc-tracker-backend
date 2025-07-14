@@ -39,6 +39,7 @@ jsc: "0" (indicating this person is a superuser) or "-1" (indicates a normal use
 contact_id_list: ["c0000", "c0001", ...] or [] if none (ordered with most recently modified first)
 archived_contact_id_list: ["c0000", "c0001", ...] or [] if none (ordered with most recently archived first)
 next_contact_id: 'c0001'
+roles: ["admin", ...] or [] if none
   # These are used by the Google login process
   google_state: <random 16-digit hex string>
   code_verifier: <random 60-character string>

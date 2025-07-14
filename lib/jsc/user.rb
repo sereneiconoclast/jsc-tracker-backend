@@ -33,6 +33,8 @@ module Jsc
     field(:archived_contact_id_list, field_class: DbFields::IdListField) { [] }
     # String
     field(:next_contact_id) { 'c0000' }
+    # Array<String> - user roles (e.g., ["admin"])
+    field(:roles) { [] }
     # The Google login is good until this time
     field(:login_expires_at, field_class: DbFields::TimestampField) { nil }
     # Record the time of last login
@@ -82,14 +84,25 @@ module Jsc
     end
 
     def admin?
-      $g.admin?(self)
+      # Check if user has "admin" role
+      self.roles.include?("admin") && $g.admin?(self)
     end
 
     def grant_admin!
+      # Add "admin" role to user's roles list
+      self.roles = (self.roles + ["admin"]).uniq
+      write!
+
+      # Also update the global admins list
       $g.grant_admin!(self)
     end
 
     def revoke_admin!
+      # Remove "admin" role from user's roles list
+      self.roles = self.roles - ["admin"]
+      write!
+
+      # Also update the global admins list
       $g.revoke_admin!(self)
     end
 
