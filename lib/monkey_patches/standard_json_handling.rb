@@ -32,7 +32,7 @@ module ::Kernel
     response_headers['Access-Control-Allow-Origin'] = origin
 
     body = JSON.parse(event['body'] || '{}')
-    result_hash = yield(body: body.symbolize_keys, access_token: access_token)
+    result_hash = yield(body: body.symbolize_keys, access_token: access_token, origin: origin)
     {
       statusCode: 200,
       headers: response_headers,

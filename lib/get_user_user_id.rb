@@ -2,7 +2,7 @@ require_relative 'jsc/require_all'
 
 # GET /user/{user_id}
 def lambda_handler(event:, context:)
-  standard_json_handling(event: event) do |body:, access_token:|
+  standard_json_handling(event: event) do |body:, access_token:, origin:|
 
     user_id = event.dig('pathParameters',  'user_id')
 
@@ -32,11 +32,28 @@ def lambda_handler(event:, context:)
     # from contact_id_list
 
     users = [user.to_json_hash].compact
-    {
+
+    response_hash = {
       users: users,
       contacts: contacts,
       jsc: nil,
       jsc_members: nil,
     }
+
+    # Add roles information for admin users
+    if user.admin?
+      # Calculate admin page URL based on origin
+      admin_url = if origin == 'http://localhost:3000'
+        'http://localhost:3000/JSC-Tracker/roleAdmin'
+      else # https://static.infinitequack.net
+        'https://static.infinitequack.net/JSC-Tracker/roleAdmin/'
+      end
+
+      response_hash[:roles] = {
+        admin: admin_url
+      }
+    end
+
+    response_hash
   end
 end # lambda_handler

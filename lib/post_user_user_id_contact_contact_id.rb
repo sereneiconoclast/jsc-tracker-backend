@@ -27,7 +27,7 @@ require 'json'
 #   --json '{"notes": "http://www.yahoo.com/"}' \
 #   'https://jsc-tracker.infinitequack.net/user/115610831205855378140/contact/c0000?access_token=ya29....0178'
 def lambda_handler(event:, context:)
-  standard_json_handling(event: event) do |body:, access_token:|
+  standard_json_handling(event: event) do |body:, access_token:, origin:|
     user_id = event.dig('pathParameters', 'user_id')
     user_id = access_token[:sub] if user_id == '-'
     contact_id = event.dig('pathParameters', 'contact_id')

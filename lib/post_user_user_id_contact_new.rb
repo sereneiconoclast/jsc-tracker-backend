@@ -3,7 +3,7 @@ require 'json'
 
 # POST /user/{user_id}/contact/new
 def lambda_handler(event:, context:)
-  standard_json_handling(event: event) do |body:, access_token:|
+  standard_json_handling(event: event) do |body:, access_token:, origin:|
     user_id = event.dig('pathParameters',  'user_id')
     user_id = access_token[:sub] if user_id == '-'
 
