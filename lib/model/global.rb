@@ -5,6 +5,8 @@ module Model
   class Global
     ADMINS_PK = -'$admins'
     ADMINS_USER_IDS_KEY = :user_id_list
+    NEXT_JSC_PK = -'$next_jsc'
+    NEXT_JSC_KEY = :next_jsc_id
 
     class << self
       def instance
@@ -54,10 +56,29 @@ module Model
       write_admin_user_ids(new_list)
     end
 
+    # Read the next JSC ID directly from DynamoDB, return as Integer
+    def next_jsc
+      record = db.read(pk: NEXT_JSC_PK) || {}
+      record[NEXT_JSC_KEY] || 1
+    end
+
+    # Increment the next JSC ID and write it back to DynamoDB
+    def increment_next_jsc!
+      current_id = next_jsc
+      new_id = current_id + 1
+      write_next_jsc(new_id)
+      current_id  # Return the ID that was used (before increment)
+    end
+
     private
 
     def write_admin_user_ids(admin_user_ids)
       record = { pk: ADMINS_PK, ADMINS_USER_IDS_KEY => admin_user_ids }
+      db.write(item: record)
+    end
+
+    def write_next_jsc(next_jsc_id)
+      record = { pk: NEXT_JSC_PK, NEXT_JSC_KEY => next_jsc_id }
       db.write(item: record)
     end
   end
