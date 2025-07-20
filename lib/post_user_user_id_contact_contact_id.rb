@@ -27,28 +27,26 @@ require 'json'
 #   --json '{"notes": "http://www.yahoo.com/"}' \
 #   'https://jsc-tracker.infinitequack.net/user/115610831205855378140/contact/c0000?access_token=ya29....0178'
 def lambda_handler(event:, context:)
-  standard_json_handling(event: event) do |body:, access_token:, origin:|
-    user_id = event.dig('pathParameters', 'user_id')
-    user_id = access_token[:sub] if user_id == '-'
+  standard_json_handling(event: event) do |input|
+    # TODO: Consider if we ever want to allow creating a contact belonging
+    # to someone else
     contact_id = event.dig('pathParameters', 'contact_id')
-
-    user = Jsc::User.read(sub: user_id)
-    contact = Jsc::Contact.read(sub: user_id, contact_id: contact_id)
+    contact = Jsc::Contact.read(sub: input.user.sub, contact_id: contact_id)
 
     # Filter body to only allow permitted fields
-    body.keep_if do |k, _v|
+    input.body.keep_if do |k, _v|
       Jsc::Contact::ALLOWED_IN_CONTACT_POST.include?(k)
     end
 
     # Update the contact
-    contact.update(**body)
+    contact.update(**input.body)
     contact.write!
 
     # Move the contact to the front of the user's contact list
-    user.prepend_id_to_field(:contact_id_list, contact_id)
-    user.write!
+    input.user.prepend_id_to_field(:contact_id_list, contact_id)
+    input.user.write!
 
     # Return the portion we accepted
-    body
+    input.body
   end
 end # lambda_handler

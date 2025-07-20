@@ -145,6 +145,7 @@ class DynamoObject
   def write!
     self.modified_at = Time.now
     db.write(item: to_dynamodb)
+    self
   end
 
   class << self

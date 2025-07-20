@@ -1,6 +1,7 @@
 require 'json'
 require 'dynamo_object'
 require 'active_support/core_ext/hash/keys' # symbolize_keys
+require 'standard_json_handler_input'
 
 module ::Kernel
   JSC_CORS_ALLOWED_ORIGINS = %w(
@@ -16,10 +17,15 @@ module ::Kernel
 
   # event:
   # https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
-  def standard_json_handling(event:)
+  # create_current_user: lambda accepting an access_token and
+  # returning a newly created User
+  def standard_json_handling(event:, create_current_user: nil)
+    create_current_user ||= ->(_) { raise AuthenticationFailedError }
+
     access_token_str = event.dig('queryStringParameters', 'access_token')
     raise AuthenticationFailedError unless access_token_str
     access_token = access_token_str.parse_google_access_token
+    sub = access_token[:sub]
 
     origin = event.dig('headers', 'origin')
     unless JSC_CORS_ALLOWED_ORIGINS.include?(origin)
@@ -31,8 +37,40 @@ module ::Kernel
     response_headers = JSC_CORS_HEADERS.dup
     response_headers['Access-Control-Allow-Origin'] = origin
 
-    body = JSON.parse(event['body'] || '{}')
-    result_hash = yield(body: body.symbolize_keys, access_token: access_token, origin: origin)
+    current_user =
+      Jsc::User.read(sub: sub, ok_if_missing: true) ||
+      create_current_user.call(access_token)
+
+    if (user_id = event.dig('pathParameters', 'user_id'))
+      user = if ['-', sub].include?(user_id)
+        current_user
+      else
+        # TODO: Permission check -- OK if authenticated as admin, or
+        # selected user is in same JSC as authenticated user
+        # TODO: Consider if we ever want to allow certain operations by
+        # another user, such as creating/modifying a contact belonging
+        # to someone else
+        Jsc::User.read(sub: user_id)
+      end
+    end
+
+    # Check if this is an admin endpoint and verify admin status
+    path = event.dig('path') || ''
+    if path.include?('/admin/')
+      raise AuthenticationFailedError, "Admin access required" unless current_user.admin?
+    end
+
+    body = JSON.parse(event['body'] || '{}').symbolize_keys
+
+    input = StandardJsonHandlerInput.new(
+      body: body,
+      access_token: access_token,
+      origin: origin,
+      current_user: current_user,
+      user: user
+    )
+    result_hash = yield(input)
+
     {
       statusCode: 200,
       headers: response_headers,

@@ -1,37 +1,29 @@
 require_relative 'jsc/require_all'
 
+# Create authenticated user if never seen before
+CREATE_CURRENT_USER = lambda do |access_token|
+  args = access_token.keep_if do |k, _v|
+    Jsc::User::DEFAULTED_FROM_ACCESS_TOKEN.include?(k)
+  end
+  Jsc::User.new(**args).write!
+end
+
 # GET /user/{user_id}
 def lambda_handler(event:, context:)
-  standard_json_handling(event: event) do |body:, access_token:, origin:|
-
-    user_id = event.dig('pathParameters',  'user_id')
-
-    if user_id == '-'
-      user_id = access_token[:sub]
-      user = Jsc::User.read(sub: user_id, ok_if_missing: true)
-      unless user
-        args = access_token.keep_if do |k, _v|
-          Jsc::User::DEFAULTED_FROM_ACCESS_TOKEN.include?(k)
-        end
-        user = Jsc::User.new(**args)
-        user.write!
-      end
-    else
-      user = Jsc::User.read(sub: user_id)
-    end
-
+  standard_json_handling(event: event, create_current_user: CREATE_CURRENT_USER) do |input|
     # Load the user's most recent contacts
     # The contact_id_list is already ordered with most recent first, so just take first 20
-    contacts = user.contact_id_list.take(20).
+    # TODO: Allow filtering the list by name, email, whatever
+    contacts = input.user.contact_id_list.take(20).
       filter_map do |contact_id|
         Jsc::Contact.read(
-          sub: user.sub, contact_id: contact_id, ok_if_missing: true
+          sub: input.user.sub, contact_id: contact_id, ok_if_missing: true
         )&.to_json_hash
       end
     # TODO: When the given contact ID couldn't be found, it should be deleted
     # from contact_id_list
 
-    users = [user.to_json_hash].compact
+    users = [input.user.to_json_hash].compact
 
     response_hash = {
       users: users,
@@ -41,9 +33,9 @@ def lambda_handler(event:, context:)
     }
 
     # Add roles information for admin users
-    if user.admin?
+    if input.current_user.admin?
       # Calculate admin page URL based on origin
-      admin_url = if origin == 'http://localhost:3000'
+      admin_url = if input.origin == 'http://localhost:3000'
         'http://localhost:3000/JSC-Tracker/roleAdmin'
       else # https://static.infinitequack.net
         'https://static.infinitequack.net/JSC-Tracker/roleAdmin/'

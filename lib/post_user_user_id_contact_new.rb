@@ -3,14 +3,11 @@ require 'json'
 
 # POST /user/{user_id}/contact/new
 def lambda_handler(event:, context:)
-  standard_json_handling(event: event) do |body:, access_token:, origin:|
-    user_id = event.dig('pathParameters',  'user_id')
-    user_id = access_token[:sub] if user_id == '-'
-
-    user = Jsc::User.read(sub: user_id)
-
+  standard_json_handling(event: event) do |input|
+    # TODO: Consider if we ever want to allow creating a contact belonging
+    # to someone else
     # Create new contact using the user's add_contact method
-    contact = user.add_contact
+    contact = input.user.add_contact
 
     # Return the new contact in the response
     {

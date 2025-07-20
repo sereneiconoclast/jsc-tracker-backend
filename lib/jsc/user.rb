@@ -110,8 +110,7 @@ module Jsc
       contact_id = self.next_contact_id
       self.next_contact_id = contact_id.succ
       prepend_id_to_field(:contact_id_list, contact_id)
-      c = Contact.new(sub: self.sub, contact_id: contact_id)
-      c.write!
+      c = Contact.new(sub: self.sub, contact_id: contact_id).write!
       write!
       c
     end
