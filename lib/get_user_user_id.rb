@@ -1,11 +1,11 @@
-require_relative 'jsc/require_all'
+require_relative 'model/require_all'
 
 # Create authenticated user if never seen before
 CREATE_CURRENT_USER = lambda do |access_token|
   args = access_token.keep_if do |k, _v|
-    Jsc::User::DEFAULTED_FROM_ACCESS_TOKEN.include?(k)
+    Model::User::DEFAULTED_FROM_ACCESS_TOKEN.include?(k)
   end
-  Jsc::User.new(**args).write!
+  Model::User.new(**args).write!
 end
 
 # GET /user/{user_id}
@@ -16,7 +16,7 @@ def lambda_handler(event:, context:)
     # TODO: Allow filtering the list by name, email, whatever
     contacts = input.user.contact_id_list.take(20).
       filter_map do |contact_id|
-        Jsc::Contact.read(
+        Model::Contact.read(
           sub: input.user.sub, contact_id: contact_id, ok_if_missing: true
         )&.to_json_hash
       end

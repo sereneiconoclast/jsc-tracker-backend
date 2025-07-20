@@ -1,6 +1,6 @@
 require 'dynamo_object'
 
-module Jsc
+module Model
   class Contact < DynamoObject
     # Primary key: "#{sub}-#{contact_id}"
     field(:sub, id: true) # User's Google sub

@@ -38,7 +38,7 @@ module ::Kernel
     response_headers['Access-Control-Allow-Origin'] = origin
 
     current_user =
-      Jsc::User.read(sub: sub, ok_if_missing: true) ||
+      Model::User.read(sub: sub, ok_if_missing: true) ||
       create_current_user.call(access_token)
 
     if (user_id = event.dig('pathParameters', 'user_id'))
@@ -50,7 +50,7 @@ module ::Kernel
         # TODO: Consider if we ever want to allow certain operations by
         # another user, such as creating/modifying a contact belonging
         # to someone else
-        Jsc::User.read(sub: user_id)
+        Model::User.read(sub: user_id)
       end
     end
 

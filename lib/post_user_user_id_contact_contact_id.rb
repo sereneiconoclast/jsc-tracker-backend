@@ -1,4 +1,4 @@
-require_relative 'jsc/require_all'
+require_relative 'model/require_all'
 require 'json'
 
 # POST /user/{user_id}/contact/{contact_id}
@@ -31,11 +31,11 @@ def lambda_handler(event:, context:)
     # TODO: Consider if we ever want to allow creating a contact belonging
     # to someone else
     contact_id = event.dig('pathParameters', 'contact_id')
-    contact = Jsc::Contact.read(sub: input.user.sub, contact_id: contact_id)
+    contact = Model::Contact.read(sub: input.user.sub, contact_id: contact_id)
 
     # Filter body to only allow permitted fields
     input.body.keep_if do |k, _v|
-      Jsc::Contact::ALLOWED_IN_CONTACT_POST.include?(k)
+      Model::Contact::ALLOWED_IN_CONTACT_POST.include?(k)
     end
 
     # Update the contact

@@ -1,4 +1,4 @@
-require_relative 'jsc/require_all'
+require_relative 'model/require_all'
 require 'json'
 
 # POST /user/{user_id}/contact/new

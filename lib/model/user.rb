@@ -7,7 +7,7 @@ require 'httparty'
 #
 # Subject - Identifier for the End-User at the Issuer
 
-module Jsc
+module Model
   class User < DynamoObject
     # See https://developers.google.com/identity/protocols/oauth2/native-app
     # and https://console.cloud.google.com/apis/credentials?project=infinitequack-bl-1687379300799

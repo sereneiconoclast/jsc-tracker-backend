@@ -1,7 +1,7 @@
 require 'db'
 
-# Defines $g as Jsc::Global.instance
-module Jsc
+# Defines $g as Model::Global.instance
+module Model
   class Global
     ADMINS_PK = -'$admins'
     ADMINS_USER_IDS_KEY = :user_id_list
