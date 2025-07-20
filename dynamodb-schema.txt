@@ -48,7 +48,7 @@ last_logins_at: <List of up to 6 timestamp digit-string> or ["0"] if never logge
 
 JSC:
 
-pk: <jsc-number>_members
+pk: <jsc-number>_jsc
 members: [<sub>, <sub>, ...]
 
 Details on a particular contact:

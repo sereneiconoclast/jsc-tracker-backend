@@ -5,36 +5,16 @@ require 'json'
 # Creates a new JSC and returns its number
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|
-    # Read the current next_jsc number from global state
+    # Get the next JSC ID and increment it atomically
     global = Model::Global.instance
-    next_jsc_record = db.read(pk: '$next_jsc') || {}
-    next_jsc = next_jsc_record['next_jsc'] || '1'
+    jsc_id = global.increment_next_jsc!
 
-    # Create the new JSC with the current number
-    jsc_record = {
-      pk: "#{next_jsc}_members",
-      members: [],
-      created_at: Time.now.to_i.to_s,
-      modified_at: Time.now.to_i.to_s,
-      deactivated_at: '0'
-    }
+    # Create the new JSC using the Model::Jsc class
+    jsc = Model::Jsc.create!(jsc_id: jsc_id)
 
-    # Write the new JSC to DynamoDB
-    db.write(item: jsc_record)
-
-    # Increment the next_jsc number
-    next_jsc_record['next_jsc'] = (next_jsc.to_i + 1).to_s
-    next_jsc_record['pk'] = '$next_jsc'
-    next_jsc_record['created_at'] = Time.now.to_i.to_s
-    next_jsc_record['modified_at'] = Time.now.to_i.to_s
-    next_jsc_record['deactivated_at'] = '0'
-
-    # Write the updated next_jsc to DynamoDB
-    db.write(item: next_jsc_record)
-
-    # Return the created JSC number
+    # Return the created JSC information
     {
-      jsc_number: next_jsc
+      jsc_id: jsc_id
     }
   end
 end # lambda_handler
