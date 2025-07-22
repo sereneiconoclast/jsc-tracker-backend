@@ -45,4 +45,37 @@ class DB
     warn "Unable to delete #{pk} from DynamoDB: #{error}"
     raise
   end
+
+  # Atomically increment a string counter field for a given pk and field.
+  # Stores values as strings, uses .succ for incrementing, and retries on collision.
+  # initial_value: value to return if the field did not exist (default 1)
+  def atomic_increment(pk:, field:, initial_value: 1)
+    resp = dynamodb.get_item(table_name: table_name, key: { pk: pk })
+    old_value = resp.item&.dig(field.to_s)
+
+    if old_value
+      new_value = old_value.succ
+      dynamodb.update_item(
+        table_name: table_name,
+        key: { pk: pk },
+        update_expression: "SET #{field} = :newval",
+        condition_expression: "#{field} = :oldval",
+        expression_attribute_values: {
+          ":newval" => new_value,
+          ":oldval" => old_value
+        }
+      )
+      return old_value.to_i
+    else
+      new_value = initial_value.to_s.succ
+      dynamodb.put_item(
+        table_name: table_name,
+        item: { pk: pk, field => new_value },
+        condition_expression: 'attribute_not_exists(pk)'
+      )
+      return initial_value
+    end
+  rescue Aws::DynamoDB::Errors::ConditionalCheckFailedException
+    retry
+  end
 end
