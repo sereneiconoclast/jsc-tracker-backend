@@ -59,7 +59,7 @@ module Model
     # Read the next JSC ID directly from DynamoDB, return as Integer
     def next_jsc
       record = db.read(pk: NEXT_JSC_PK) || {}
-      record[NEXT_JSC_KEY] || 1
+      record[NEXT_JSC_KEY]&.to_i || 1
     end
 
     # Increment the next JSC ID and write it back to DynamoDB
@@ -78,7 +78,7 @@ module Model
     end
 
     def write_next_jsc(next_jsc_id)
-      record = { pk: NEXT_JSC_PK, NEXT_JSC_KEY => next_jsc_id }
+      record = { pk: NEXT_JSC_PK, NEXT_JSC_KEY => next_jsc_id.to_s }
       db.write(item: record)
     end
   end
