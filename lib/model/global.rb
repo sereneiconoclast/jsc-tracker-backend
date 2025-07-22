@@ -64,10 +64,11 @@ module Model
 
     # Increment the next JSC ID and write it back to DynamoDB
     def increment_next_jsc!
-      current_id = next_jsc
-      new_id = current_id + 1
-      write_next_jsc(new_id)
-      current_id  # Return the ID that was used (before increment)
+      db.atomic_increment(
+        pk: NEXT_JSC_PK,
+        field: NEXT_JSC_KEY,
+        initial_value: 1
+      )
     end
 
     private

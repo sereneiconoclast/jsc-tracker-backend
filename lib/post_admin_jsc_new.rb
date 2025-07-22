@@ -6,8 +6,7 @@ require 'json'
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|
     # Get the next JSC ID and increment it atomically
-    global = Model::Global.instance
-    jsc_id = global.increment_next_jsc!
+    jsc_id = $g.increment_next_jsc!
 
     # Create the new JSC using the Model::Jsc class
     jsc = Model::Jsc.create!(jsc_id: jsc_id)
