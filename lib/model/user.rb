@@ -77,6 +77,16 @@ module Model
           from_dynamodb(dynamodb_record: db.read(pk: pk(sub: sub)))
         end
       end
+
+      # Retrieve all users from the database
+      def all
+        scan_results = db.scan(filter_expression: "ends_with(pk, :pk_suffix)",
+                              expression_attribute_values: { ":pk_suffix" => "_user" })
+
+        scan_results.map do |item|
+          from_dynamodb(dynamodb_record: item)
+        end
+      end
     end
 
     def pk

@@ -116,6 +116,22 @@ Resources:
       PathPart: new
       RestApiId: !Ref JSCTrackerApi
 
+  # /admin/users
+  JSCTrackerAdminUsersResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminResource
+      PathPart: users
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/users/search
+  JSCTrackerAdminUsersSearchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminUsersResource
+      PathPart: search
+      RestApiId: !Ref JSCTrackerApi
+
   # GET /user/{user_id}
   JSCTrackerGetUserUserIdMethod:
     Type: AWS::ApiGateway::Method
@@ -237,6 +253,26 @@ Resources:
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminJscNewLambdaFunctionArn
 
+  # GET /admin/users/search
+  JSCTrackerGetAdminUsersSearchMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersSearchResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.querystring.email: false
+        method.request.querystring.name: false
+        method.request.querystring.jsc: false
+        method.request.querystring.admin_only: false
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn
+
   # OPTIONS /user/{user_id}/contact/{contact_id}
   JSCTrackerOptionsUserUserIdContactContactIdMethod:
     Type: AWS::ApiGateway::Method
@@ -339,6 +375,40 @@ Resources:
           ResponseModels:
             application/json: Empty
 
+  # OPTIONS /admin/users/search
+  JSCTrackerOptionsAdminUsersSearchMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersSearchResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '.*'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Max-Age: "'600'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Max-Age: true
+          ResponseModels:
+            application/json: Empty
+
   # OPTIONS /user
   JSCTrackerOptionsUserMethod:
     Type: AWS::ApiGateway::Method
@@ -385,10 +455,12 @@ Resources:
       - JSCTrackerPostUserUserIdContactNewMethod
       - JSCTrackerPostUserUserIdContactContactIdMethod
       - JSCTrackerPostAdminJscNewMethod
+      - JSCTrackerGetAdminUsersSearchMethod
       - JSCTrackerOptionsUserUserIdMethod
       - JSCTrackerOptionsUserUserIdContactNewMethod
       - JSCTrackerOptionsUserUserIdContactContactIdMethod
       - JSCTrackerOptionsAdminJscNewMethod
+      - JSCTrackerOptionsAdminUsersSearchMethod
       - JSCTrackerOptionsUserMethod
 
   JSCTrackerLambdaPermissionGetUserUserId:
@@ -429,6 +501,14 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName:
         !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminJscNewLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionGetAdminUsersSearch:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
 Outputs:

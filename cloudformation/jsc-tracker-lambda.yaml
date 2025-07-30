@@ -102,6 +102,20 @@ Resources:
       Timeout: 30
       MemorySize: 128
 
+  JSCTrackerGetAdminUsersSearchLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerGetAdminUsersSearch'
+      Handler: 'get_admin_users_search.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
 Outputs:
   JSCTrackerGetUserUserIdLambdaFunctionArn:
     Description: 'ARN of the GetUserUserId Lambda function'
@@ -128,3 +142,8 @@ Outputs:
     Value: !GetAtt JSCTrackerPostAdminJscNewLambdaFunction.Arn
     Export:
       Name: !Sub '${AWS::StackName}-JSCTrackerPostAdminJscNewLambdaFunctionArn'
+  JSCTrackerGetAdminUsersSearchLambdaFunctionArn:
+    Description: 'ARN of the GetAdminUsersSearch Lambda function'
+    Value: !GetAtt JSCTrackerGetAdminUsersSearchLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerGetAdminUsersSearchLambdaFunctionArn'
