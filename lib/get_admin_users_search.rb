@@ -2,7 +2,7 @@ require_relative './monkey_patches/require_all'
 require_relative './model/require_all'
 
 def lambda_handler(event:, context:)
-  Model::StandardJsonHandler.new(event, context).handle do |input|
+  standard_json_handling(event: event) do |input|
     # Admin check is already handled by standard_json_handling.rb
 
     # Parse query parameters
