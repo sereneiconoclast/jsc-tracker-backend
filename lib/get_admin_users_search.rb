@@ -6,7 +6,7 @@ def lambda_handler(event:, context:)
     # Admin check is already handled by standard_json_handling.rb
 
     # Parse query parameters
-    query_params = input.query_params || {}
+    query_params = input.query_params
     email_filter = query_params['email']
     name_filter = query_params['name']
     jsc_filter = query_params['jsc']

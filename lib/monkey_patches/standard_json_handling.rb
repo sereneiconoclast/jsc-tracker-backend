@@ -22,7 +22,8 @@ module ::Kernel
   def standard_json_handling(event:, create_current_user: nil)
     create_current_user ||= ->(_) { raise AuthenticationFailedError }
 
-    access_token_str = event.dig('queryStringParameters', 'access_token')
+    query_params = event.dig('queryStringParameters')&.dup || {}
+    access_token_str = query_params.delete('access_token')
     raise AuthenticationFailedError unless access_token_str
     access_token = access_token_str.parse_google_access_token
     sub = access_token[:sub]
@@ -65,6 +66,7 @@ module ::Kernel
     input = StandardJsonHandlerInput.new(
       body: body,
       access_token: access_token,
+      query_params: query_params,
       origin: origin,
       current_user: current_user,
       user: user
