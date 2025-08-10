@@ -46,6 +46,18 @@ class DB
     raise
   end
 
+  def scan(filter_expression: nil, expression_attribute_values: nil)
+    params = { table_name: table_name }
+    params[:filter_expression] = filter_expression if filter_expression
+    params[:expression_attribute_values] = expression_attribute_values if expression_attribute_values
+
+    debug("DynamoDB scan with params: #{params.inspect}")
+    dynamodb.scan(params).items.map(&:symbolize_keys)
+  rescue Aws::DynamoDB::Errors::ServiceError => error
+    warn "Unable to scan DynamoDB: #{error}"
+    raise
+  end
+
   # Atomically increment a string counter field for a given pk and field.
   # Stores values as strings, uses .succ for incrementing, and retries on collision.
   # initial_value: value to return if the field did not exist (default 1)
