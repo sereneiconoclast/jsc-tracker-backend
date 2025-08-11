@@ -80,10 +80,17 @@ module Model
 
       # Retrieve all users from the database
       def all
-        scan_results = db.scan(filter_expression: "ends_with(pk, :pk_suffix)",
-                              expression_attribute_values: { ":pk_suffix" => "_user" })
+        # Since all user records have primary keys ending with "_user",
+        # we can use a more efficient approach by filtering after the scan
+        # or by using a GSI in the future
+        scan_results = db.scan
 
-        scan_results.map do |item|
+        # Filter for user records (those ending with "_user")
+        user_records = scan_results.select do |item|
+          item[:pk].to_s.end_with?("_user")
+        end
+
+        user_records.map do |item|
           from_dynamodb(dynamodb_record: item)
         end
       end
