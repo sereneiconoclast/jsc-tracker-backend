@@ -132,6 +132,18 @@ module Model
       c
     end
 
+    # Assign user to a JSC
+    def assign_to_jsc!(jsc_number)
+      self.jsc = jsc_number.to_s
+      write!
+    end
+
+    # Remove user from JSC (set to unassigned)
+    def unassign_from_jsc!
+      self.jsc = "-1"
+      write!
+    end
+
     def after_load_hook
       # This may not be needed since Google will expire access tokens
       super

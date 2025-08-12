@@ -132,6 +132,14 @@ Resources:
       PathPart: search
       RestApiId: !Ref JSCTrackerApi
 
+  # /admin/users/assign
+  JSCTrackerAdminUsersAssignResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminUsersResource
+      PathPart: assign
+      RestApiId: !Ref JSCTrackerApi
+
   # GET /user/{user_id}
   JSCTrackerGetUserUserIdMethod:
     Type: AWS::ApiGateway::Method
@@ -273,6 +281,21 @@ Resources:
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn
 
+  # POST /admin/users/assign
+  JSCTrackerPostAdminUsersAssignMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersAssignResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminUsersAssignLambdaFunctionArn
+
   # OPTIONS /user/{user_id}/contact/{contact_id}
   JSCTrackerOptionsUserUserIdContactContactIdMethod:
     Type: AWS::ApiGateway::Method
@@ -409,6 +432,40 @@ Resources:
           ResponseModels:
             application/json: Empty
 
+  # OPTIONS /admin/users/assign
+  JSCTrackerOptionsAdminUsersAssignMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersAssignResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '.*'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Max-Age: "'600'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Max-Age: true
+          ResponseModels:
+            application/json: Empty
+
   # OPTIONS /user
   JSCTrackerOptionsUserMethod:
     Type: AWS::ApiGateway::Method
@@ -456,11 +513,13 @@ Resources:
       - JSCTrackerPostUserUserIdContactContactIdMethod
       - JSCTrackerPostAdminJscNewMethod
       - JSCTrackerGetAdminUsersSearchMethod
+      - JSCTrackerPostAdminUsersAssignMethod
       - JSCTrackerOptionsUserUserIdMethod
       - JSCTrackerOptionsUserUserIdContactNewMethod
       - JSCTrackerOptionsUserUserIdContactContactIdMethod
       - JSCTrackerOptionsAdminJscNewMethod
       - JSCTrackerOptionsAdminUsersSearchMethod
+      - JSCTrackerOptionsAdminUsersAssignMethod
       - JSCTrackerOptionsUserMethod
 
   JSCTrackerLambdaPermissionGetUserUserId:
@@ -509,6 +568,14 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName:
         !ImportValue 'jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionPostAdminUsersAssign:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminUsersAssignLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
 Outputs:
