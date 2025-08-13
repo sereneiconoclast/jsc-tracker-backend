@@ -2,6 +2,7 @@ require 'set'
 require 'dynamo_object'
 require_relative '../application_config'
 require 'httparty'
+require 'active_support/core_ext/object/blank'
 
 # From https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 #
@@ -26,7 +27,7 @@ module Model
     field(:twopager) { 'Two-pager URL' }
     field(:cmf) { 'Candidate-Market Fit goes here' }
     field(:contact_info) { 'Contact Info goes here' }
-    field(:jsc, to_json: ->(v) { v == '-1' ? nil : v }) { '-1' }
+    field(:jsc, to_json: ->(v) { v == '-1' ? nil : v.to_s }) { '-1' }
     # Array<String> - ordered list of contact IDs, most recent first
     field(:contact_id_list, field_class: DbFields::IdListField) { [] }
     # Array<String> - ordered list of archived contact IDs
@@ -98,6 +99,10 @@ module Model
 
     def pk
       @pk ||= self.class.pk(sub: sub)
+    end
+
+    def unassigned?
+      jsc.blank? || jsc == '-1'
     end
 
     def admin?
