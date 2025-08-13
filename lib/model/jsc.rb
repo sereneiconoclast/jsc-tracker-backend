@@ -41,19 +41,21 @@ module Model
     end
 
     # Add a user to this JSC
-    def add_user!(user)
-      return if members.include?(user.sub)
+    # Return this object if modified, otherwise nil
+    def add_user(user)
+      return nil if members.include?(user.sub)
 
       self.members.unshift(user.sub)
-      write!
+      self
     end
 
     # Remove a user from this JSC
-    def remove_user!(user)
+    # Return this object if modified, otherwise nil
+    def remove_user(user)
       return unless members.include?(user.sub)
 
       self.members.delete(user.sub)
-      write!
+      self
     end
 
     # Get all users assigned to this JSC
