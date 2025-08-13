@@ -49,8 +49,11 @@ module DbFields
       strip_if_string(dval)
     end
 
+    # Normal fields should always be strings
+    # Subclasses SetField, IdListField, and TimestampField override this
+    # (and they don't call 'super')
     def to_dynamodb(val)
-      strip_if_string(val)
+      strip_if_string(string_if_scalar(val))
     end
 
     def to_json_hash(val)
@@ -62,6 +65,13 @@ module DbFields
     def to_json_value(val)
       return @to_json.call(val) if @to_json
       val
+    end
+
+    def string_if_scalar(v)
+      case v
+      when Array, Set then v
+      else v.to_s
+      end
     end
 
     def strip_if_string(s)
