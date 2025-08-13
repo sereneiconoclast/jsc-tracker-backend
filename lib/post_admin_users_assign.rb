@@ -17,39 +17,42 @@ def lambda_handler(event:, context:)
     raise "jsc_number is required" unless jsc_number
 
     # Convert jsc_number to string if it's a number
+    # Validate JSC number format (should be a positive integer, digits only)
     jsc_number = jsc_number.to_s
+    raise "Invalid JSC number: #{jsc_number}" unless jsc_number =~ /^[1-9][0-9]*$/
 
-    # Validate JSC number format (should not start with 0, and should not be "0" or "-1")
-    raise "Invalid JSC number: #{jsc_number}" if jsc_number.start_with?('0') || jsc_number == "0" || jsc_number == "-1"
+    modified = Set.new
+    load_jsc = Hash.new { |h, k| h[k] = Model::Jsc.read(jsc_id: k) }
 
     # Load the target JSC
-    jsc = Model::Jsc.read(jsc_id: jsc_number.to_i)
+    jsc = load_jsc[jsc_number]
     raise "JSC #{jsc_number} not found" unless jsc
 
     # Track users that were previously unassigned
     previously_unassigned_users = []
 
-    # Process each user
-    user_subs.each do |user_sub|
-      user = Model::User.read(sub: user_sub)
-      raise "User #{user_sub} not found" unless user
+    # Look up all users; if one isn't found, error out before changing anything
+    # Drop any that are already in the target JSC
+    users = user_subs.map do |user_sub|
+      user = Model::User.read(sub: user_sub) or raise "User #{user_sub} not found"
+      (user.jsc != jsc_number) ? user : nil
+    end.compact
 
+    # Process each user
+    users.each do |user|
       # Check if user was previously unassigned
-      if user.jsc.nil? || user.jsc.empty? || user.jsc == "-1"
-        previously_unassigned_users << user_sub
+      if user.unassigned?
+        previously_unassigned_users << user.sub
       else
         # Remove user from previous JSC
-        previous_jsc = Model::Jsc.read(jsc_id: user.jsc.to_i)
-        if previous_jsc
-          previous_jsc.remove_user!(user)
-        end
+        # Mark as requiring a save
+        modified << (load_jsc[user.jsc]&.remove_user(user))
       end
 
-      # Update user's JSC assignment
-      user.assign_to_jsc!(jsc_number)
-
-      # Add user to new JSC
-      jsc.add_user!(user)
+      # Update user's JSC assignment and add user to new JSC
+      # Mark as requiring a save
+      modified << user.assign_to_jsc(jsc_number)
+      modified << jsc.add_user(user)
     end
 
     # Update the $unassigned global if any users were previously unassigned
@@ -59,10 +62,13 @@ def lambda_handler(event:, context:)
       puts "Users previously unassigned: #{previously_unassigned_users.join(', ')}"
     end
 
+    modified.delete(nil)
+    modified.each(&:write!)
+
     # Return success response
     {
-      message: "Successfully assigned #{user_subs.length} user(s) to JSC #{jsc_number}",
-      assigned_users: user_subs,
+      message: "Successfully assigned #{users.length} user(s) to JSC #{jsc_number}",
+      assigned_users: users.map(&:sub),
       jsc_number: jsc_number,
       previously_unassigned: previously_unassigned_users
     }
