@@ -138,15 +138,16 @@ module Model
     end
 
     # Assign user to a JSC
-    def assign_to_jsc!(jsc_number)
+    # Return this object if modified, otherwise nil
+    def assign_to_jsc(jsc_number)
+      return nil if self.jsc == jsc_number.to_s
       self.jsc = jsc_number.to_s
-      write!
+      self
     end
 
     # Remove user from JSC (set to unassigned)
-    def unassign_from_jsc!
-      self.jsc = "-1"
-      write!
+    def unassign_from_jsc
+      assign_to_jsc('-1')
     end
 
     def after_load_hook
