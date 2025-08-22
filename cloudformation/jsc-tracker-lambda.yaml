@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for JSCTracker Lambda functions'
+
+Resources:
+  JSCTrackerGetUserUserIdLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerGetUserUserId'
+      Handler: 'get_user_user_id.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerPostUserUserIdLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostUserUserId'
+      Handler: 'post_user_user_id.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerPostUserUserIdContactNewLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostUserUserIdContactNew'
+      Handler: 'post_user_user_id_contact_new.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerPostUserUserIdContactContactIdLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostUserUserIdContactContactId'
+      Handler: 'post_user_user_id_contact_contact_id.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerPostAdminJscNewLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostAdminJscNew'
+      Handler: 'post_admin_jsc_new.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerGetAdminUsersSearchLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerGetAdminUsersSearch'
+      Handler: 'get_admin_users_search.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerPostAdminUsersAssignLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostAdminUsersAssign'
+      Handler: 'post_admin_users_assign.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerPostAdminUsersGrantAdminLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostAdminUsersGrantAdmin'
+      Handler: 'post_admin_users_grant_admin.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+  JSCTrackerPostAdminUsersRevokeAdminLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerPostAdminUsersRevokeAdmin'
+      Handler: 'post_admin_users_revoke_admin.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
+Outputs:
+  JSCTrackerGetUserUserIdLambdaFunctionArn:
+    Description: 'ARN of the GetUserUserId Lambda function'
+    Value: !GetAtt JSCTrackerGetUserUserIdLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserUserIdLambdaFunctionArn'
+  JSCTrackerPostUserUserIdLambdaFunctionArn:
+    Description: 'ARN of the PostUserUserId Lambda function'
+    Value: !GetAtt JSCTrackerPostUserUserIdLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostUserUserIdLambdaFunctionArn'
+  JSCTrackerPostUserUserIdContactNewLambdaFunctionArn:
+    Description: 'ARN of the PostUserUserIdContactNew Lambda function'
+    Value: !GetAtt JSCTrackerPostUserUserIdContactNewLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostUserUserIdContactNewLambdaFunctionArn'
+  JSCTrackerPostUserUserIdContactContactIdLambdaFunctionArn:
+    Description: 'ARN of the PostUserUserIdContactContactId Lambda function'
+    Value: !GetAtt JSCTrackerPostUserUserIdContactContactIdLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostUserUserIdContactContactIdLambdaFunctionArn'
+  JSCTrackerPostAdminJscNewLambdaFunctionArn:
+    Description: 'ARN of the PostAdminJscNew Lambda function'
+    Value: !GetAtt JSCTrackerPostAdminJscNewLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostAdminJscNewLambdaFunctionArn'
+  JSCTrackerGetAdminUsersSearchLambdaFunctionArn:
+    Description: 'ARN of the GetAdminUsersSearch Lambda function'
+    Value: !GetAtt JSCTrackerGetAdminUsersSearchLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerGetAdminUsersSearchLambdaFunctionArn'
+  JSCTrackerPostAdminUsersAssignLambdaFunctionArn:
+    Description: 'ARN of the PostAdminUsersAssign Lambda function'
+    Value: !GetAtt JSCTrackerPostAdminUsersAssignLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostAdminUsersAssignLambdaFunctionArn'
+  JSCTrackerPostAdminUsersGrantAdminLambdaFunctionArn:
+    Description: 'ARN of the PostAdminUsersGrantAdmin Lambda function'
+    Value: !GetAtt JSCTrackerPostAdminUsersGrantAdminLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostAdminUsersGrantAdminLambdaFunctionArn'
+  JSCTrackerPostAdminUsersRevokeAdminLambdaFunctionArn:
+    Description: 'ARN of the PostAdminUsersRevokeAdmin Lambda function'
+    Value: !GetAtt JSCTrackerPostAdminUsersRevokeAdminLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerPostAdminUsersRevokeAdminLambdaFunctionArn'

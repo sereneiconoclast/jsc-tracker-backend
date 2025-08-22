@@ -1,0 +1,567 @@
+I'd like you to create an API design for this RESTful service. Here's a description of the user experience:
+
+Assume the user first logs in using Google OAuth. With each call to API Gateway, the user must present a valid JWT, and if this isn't the case (there is no JWT or it is invalid or expired), the response to the request is an instruction to redirect the browser to a login page.
+
+Assuming the JWT is valid, calculate the SHA1 of the user's lowercased email address; this is used to form the key for DynamoDB lookups. The DynamoDB database already exists, in region us-west-2, and has this ARN: arn:aws:dynamodb:us-west-2:373705399158:table/JSC-Tracker
+
+This document describes the database schema. Note the following terms used in this schema:
+
+* The 'emailsha1' is the 40-character, lowercased, hexadecimal SHA1 of the lowercased email address.
+* All fields are strings, or arrays of strings, unless otherwise specified.
+* All timestamps are expressed as seconds since the epoch (January 1, 1970) as a digit string.
+* All entries have a timestamp field 'created_at' which is given a value when the row is added, and then never changed.
+* All entries have a timestamp field 'modified_at' which is given a value when the row is added, and updated on all subsequent edits to that row.
+* All entries have a timestamp field 'deactivated_at' which is given the value "0" when the row is added, and may be set to a timestamp if the row is to be "deleted". Rows are never actually deleted; they are just deactivated which hides them from queries. Certain queries may expressly state that deactivated rows should be returned so they may be reactivated.
+* You can consider a JSC to be a group of normal users. The JSC number <jsc-number> is a digit string that does not start with a zero, such as "3210".
+* The special JSC number "0" is reserved to indicate who is a superuser.
+* The JSC number "-1" indicates the user is not a member of any JSC right now.
+* Each JSC is intended to have a moderator, expressed as the emailsha1 of one of the group's members. This may be the empty string "" if a moderator has not been selected.
+* Contacts are stored per-user and are given an ID starting with "c" followed by four digits, such as "c0000".
+* Fields described as <markdown string> contain Markdown, are edited as a multiline textarea field, and are rendered as the HTML translation of the Markdown when not being edited. Embedded links are supported.
+
+Listed below are the keys and what they contain.
+
+User:
+
+pk: <emailsha1>-user
+name: <full name>
+email: <email address>
+timezone: <time zone string>
+slack_profile: <url string> or ""
+twopager: <url string> or ""
+cmf: <markdown string> or ""
+contact_info: <markdown string> or ""
+jsc: "0" (indicating this person is a superuser) or "-1" (indicates a normal user not in any JSC) or the JSC number as a digit string not starting with a zero
+contacts: ["c0000", "c0001", ...] or ["0"] if none
+created_at: <timestamp digit-string>
+modified_at: <timestamp digit-string>
+deactivated_at: <timestamp digit-string> or "0" if active
+last_login: <timestamp digit-string> or "0" if never logged in
+last_login_from: <x-forwarded-for list as a string> or "" if never
+
+JSC:
+
+pk: <jsc-number>-members
+members: [<emailsha1>, <emailsha1>, ...]
+moderator: <emailsha1> or ""
+slack_channel: <url string> or ""
+created_at: <timestamp digit-string>
+modified_at: <timestamp digit-string>
+deactivated_at: <timestamp digit-string> or "0" if active
+
+Details on a particular contact:
+
+pk: <emailsha1>-c0000
+name: "Jane Doe"
+contact_info: <markdown string> or ""
+notes: <url string> or ""
+status: <markdown string> or ""
+created_at: <timestamp digit-string>
+modified_at: <timestamp digit-string>
+deactivated_at: <timestamp digit-string> or "0" if active
+
+That's the end of the schema.
+
+A normal user expects to be able to perform the following actions on the website (using AJAX calls, generally modifying one field at a time):
+
+  - Retrieve, in a single call, all the information about themselves, the JSC of which they are a member (if any), and all the information about the other members of the same JSC
+  - Edit their name
+  - Edit their timezone
+  - Edit their Slack Profile URL
+  - Edit their TwoPager URL
+  - Edit their CMF Markdown
+  - Edit their Contact Information Markdown
+  - Add a new contact, specifying the name of the new contact
+  - Edit the Contact Information Markdown of an existing contact
+  - Edit the Notes URL of an existing contact
+  - Edit the Status Markdown of an existing contact
+  - Flag a contact as deactivated
+
+The moderator has these additional abilities:
+
+  - Select which member of the JSC is the moderator
+  - Edit the URL of the JSC's slack channel
+
+There is also expected to be at least one superuser in the system, who is not a member of a JSC. The superuser expects to be able to perform the following actions on the website:
+
+  - Retrieve a paginated list of all users, possibly filtered by a substring matching either the name or the email address
+  - Retrieve a paginated list of users who are not yet in a JSC
+  - Add a new user to the system, specifying at minimum the user's name, email address, and timezone
+  - Deactivate or reactivate a normal user
+  - Retrieve a paginated list of JSCs, possibly filtered by a substring
+  - Create a new JSC, specifying its number
+  - Deactivate or reactivate a JSC
+  - Assign an existing user to a JSC, or reassign a user from one JSC to another JSC
+  - Select which member of a JSC is the moderator
+
+Given this specification, please design the RESTful API.
+
+
+Based on the provided specifications, here's a design for the RESTful API:
+
+1. Authentication
+ - POST /auth/login
+ - Initiates Google OAuth login process
+ - POST /auth/refresh
+ - Refreshes JWT token
+
+2. User Operations (Normal User)
+ - GET /user
+ - Retrieves user's information, JSC info, and other JSC members' info
+ - PATCH /user
+ - Update user's information (name, timezone, slack_profile, twopager, cmf, contact_info)
+
+3. Contact Operations (Normal User)
+ - POST /contacts
+ - Add a new contact
+ - PATCH /contacts/{contactId}
+ - Update contact information (contact_info, notes, status)
+ - PUT /contacts/{contactId}/deactivate
+ - Deactivate a contact
+
+4. Moderator Operations
+ - PUT /jsc/{jscNumber}/moderator
+ - Set JSC moderator
+ - PATCH /jsc/{jscNumber}
+ - Update JSC information (slack_channel)
+
+5. Superuser Operations
+ - GET /users
+ - Retrieve paginated list of all users (with optional filter)
+ - GET /users/unassigned
+ - Retrieve paginated list of users not in a JSC
+ - POST /users
+ - Add a new user
+ - PUT /users/{emailsha1}/activate
+ - Activate a user
+ - PUT /users/{emailsha1}/deactivate
+ - Deactivate a user
+ - GET /jscs
+ - Retrieve paginated list of JSCs (with optional filter)
+ - POST /jscs
+ - Create a new JSC
+ - PUT /jscs/{jscNumber}/activate
+ - Activate a JSC
+ - PUT /jscs/{jscNumber}/deactivate
+ - Deactivate a JSC
+ - PUT /users/{emailsha1}/assign/{jscNumber}
+ - Assign or reassign a user to a JSC
+ - PUT /jscs/{jscNumber}/moderator
+ - Set JSC moderator (superuser version)
+
+API Details:
+
+1. All endpoints require a valid JWT in the Authorization header.
+2. All responses should include appropriate HTTP status codes.
+3. Pagination parameters (limit, offset) should be included in GET requests where applicable.
+4. Filtering parameters should be included in the query string for applicable GET requests.
+5. PATCH requests should accept partial updates.
+6. Error responses should include meaningful error messages.
+
+Example API calls:
+
+1. Get user information:
+ GET /user
+ Authorization: Bearer
+
+2. Update user name:
+ PATCH /user
+ Authorization: Bearer
+ Content-Type: application/json
+ { "name": "New Name" }
+
+3. Add a new contact:
+ POST /contacts
+ Authorization: Bearer
+ Content-Type: application/json
+ { "name": "Jane Doe" }
+
+4. Set JSC moderator (for moderators):
+ PUT /jsc/1234/moderator
+ Authorization: Bearer <JWT>
+ Content-Type: application/json
+ { "moderator": "" }
+
+5. Get paginated list of users (for superusers):
+ GET /users?limit=10&offset=0&filter=john
+ Authorization: Bearer
+
+6. Assign user to JSC (for superusers):
+ PUT /users//assign/1234
+ Authorization: Bearer <JWT>
+
+This API design covers all the specified functionality while maintaining RESTful principles. It separates concerns based on user roles (normal user, moderator, superuser) and provides a logical structure for performing various operations on users, contacts, and JSCs.
+
+
+OK - let's proceed with this API design. Let's write an AWS Lambda for each operation, using Ruby 3.3.
+
+
+Certainly! I'll provide you with Ruby 3.3 AWS Lambda functions for each operation in the API design. We'll start with a few key operations, and you can request more as needed. Remember that these functions will need to be integrated with API Gateway and will assume the presence of appropriate environment variables and permissions.
+
+Let's begin with some common utilities and then move on to specific Lambda functions:
+
+1. First, let's create a utility module for common operations:
+
+ruby
+# lib/utils.rb
+require 'aws-sdk-dynamodb'
+require 'jwt'
+require 'digest/sha1'
+
+module Utils
+  DYNAMO_DB = Aws::DynamoDB::Client.new(region: 'us-west-2')
+  TABLE_NAME = 'JSC-Tracker'
+
+  def self.verify_jwt(token)
+    # Implement JWT verification logic here
+    # Return the decoded payload or raise an exception if invalid
+  end
+
+  def self.email_to_sha1(email)
+    Digest::SHA1.hexdigest(email.downcase)
+  end
+
+  def self.get_user(emailsha1)
+    resp = DYNAMO_DB.get_item({
+      table_name: TABLE_NAME,
+      key: {
+        'pk' => \"#{emailsha1}-user\"
+      }
+    })
+    resp.item
+  end
+
+  def self.update_user(emailsha1, updates)
+    DYNAMO_DB.update_item({
+      table_name: TABLE_NAME,
+      key: { 'pk' => \"#{emailsha1}-user\" },
+      update_expression: updates[:update_expression],
+      expression_attribute_values: updates[:expression_attribute_values],
+      expression_attribute_names: updates[:expression_attribute_names]
+    })
+  end
+end
+
+
+2. Now, let's create a Lambda function for retrieving user information:
+
+ruby
+# lambda_functions/get_user_info.rb
+require_relative '../lib/utils'
+
+def lambda_handler(event:, context:)
+  begin
+    # Verify JWT and get user email
+    jwt_payload = Utils.verify_jwt(event['headers']['Authorization'].split(' ').last)
+    user_email = jwt_payload['email']
+    emailsha1 = Utils.email_to_sha1(user_email)
+
+    # Get user information
+    user = Utils.get_user(emailsha1)
+
+    # Get JSC information if user is in a JSC
+    jsc_info = nil
+    jsc_members = []
+    if user['jsc'] != '-1' && user['jsc'] != '0'
+      jsc_resp = Utils::DYNAMO_DB.get_item({
+        table_name: Utils::TABLE_NAME,
+        key: { 'pk' => \"#{user['jsc']}-members\" }
+      })
+      jsc_info = jsc_resp.item
+
+      # Get information for all JSC members
+      jsc_info['members'].each do |member_emailsha1|
+        jsc_members << Utils.get_user(member_emailsha1)
+      end
+    end
+
+    {
+      statusCode: 200,
+      body: JSON.generate({
+        user: user,
+        jsc: jsc_info,
+        jsc_members: jsc_members
+      })
+    }
+  rescue StandardError => e
+    {
+      statusCode: 500,
+      body: JSON.generate({ error: e.message })
+    }
+  end
+end
+
+
+3. Lambda function for updating user information:
+
+ruby
+# lambda_functions/update_user_info.rb
+require_relative '../lib/utils'
+
+def lambda_handler(event:, context:)
+  begin
+    # Verify JWT and get user email
+    jwt_payload = Utils.verify_jwt(event['headers']['Authorization'].split(' ').last)
+    user_email = jwt_payload['email']
+    emailsha1 = Utils.email_to_sha1(user_email)
+
+    # Parse the request body
+    body = JSON.parse(event['body'])
+
+    # Prepare update expression and attribute values
+    update_expression = 'SET modified_at = :modified_at'
+    expression_attribute_values = {
+      ':modified_at' => Time.now.to_i.to_s
+    }
+    expression_attribute_names = {}
+
+    ['name', 'timezone', 'slack_profile', 'twopager', 'cmf', 'contact_info'].each do |attr|
+      if body[attr]
+        update_expression += \", ##{attr} = :#{attr}\"
+        expression_attribute_values[\":#{attr}\"] = body[attr]
+        expression_attribute_names[\"##{attr}\"] = attr
+      end
+    end
+
+    # Update user information
+    Utils.update_user(emailsha1, {
+      update_expression: update_expression,
+      expression_attribute_values: expression_attribute_values,
+      expression_attribute_names: expression_attribute_names
+    })
+
+    {
+      statusCode: 200,
+      body: JSON.generate({ message: 'User information updated successfully' })
+    }
+  rescue StandardError => e
+    {
+      statusCode: 500,
+      body: JSON.generate({ error: e.message })
+    }
+  end
+end
+
+
+4. Lambda function for adding a new contact:
+
+ruby
+# lambda_functions/add_contact.rb
+require_relative '../lib/utils'
+
+def lambda_handler(event:, context:)
+  begin
+    # Verify JWT and get user email
+    jwt_payload = Utils.verify_jwt(event['headers']['Authorization'].split(' ').last)
+    user_email = jwt_payload['email']
+    emailsha1 = Utils.email_to_sha1(user_email)
+
+    # Parse the request body
+    body = JSON.parse(event['body'])
+
+    # Get user's current contacts
+    user = Utils.get_user(emailsha1)
+    contacts = user['contacts'] || ['0']
+
+    # Generate new contact ID
+    new_contact_id = if contacts == ['0']
+      'c0000'
+    else
+      'c' + (contacts.map { |c| c[1..].to_i }.max + 1).to_s.rjust(4, '0')
+    end
+
+    # Add new contact
+    timestamp = Time.now.to_i.to_s
+    Utils::DYNAMO_DB.put_item({
+      table_name: Utils::TABLE_NAME,
+      item: {
+        'pk' => \"#{emailsha1}-#{new_contact_id}\",
+        'name' => body['name'],
+        'contact_info' => '',
+        'notes' => '',
+        'status' => '',
+        'created_at' => timestamp,
+        'modified_at' => timestamp,
+        'deactivated_at' => '0'
+      }
+    })
+
+    # Update user's contacts list
+    new_contacts = contacts == ['0'] ? [new_contact_id] : contacts + [new_contact_id]
+    Utils.update_user(emailsha1, {
+      update_expression: 'SET contacts = :contacts, modified_at = :modified_at',
+      expression_attribute_values: {
+        ':contacts' => new_contacts,
+        ':modified_at' => timestamp
+      }
+    })
+
+    {
+      statusCode: 200,
+      body: JSON.generate({ message: 'Contact added successfully', contact_id: new_contact_id })
+    }
+  rescue StandardError => e
+    {
+      statusCode: 500,
+      body: JSON.generate({ error: e.message })
+    }
+  end
+end
+
+
+These Lambda functions cover some of the core operations for normal users. They demonstrate how to interact with DynamoDB, handle JWT authentication, and perform CRUD operations on user and contact data.
+
+To implement the full API, you would need to create similar Lambda functions for each endpoint, including those for moderators and superusers. Each function would follow a similar pattern:
+
+1. Verify the JWT
+2. Extract necessary information from the request
+3. Perform the required database operations
+4. Return an appropriate response
+
+Remember to set up proper IAM roles for these Lambda functions to access DynamoDB and any other necessary AWS services. Also, ensure that you have appropriate error handling and logging in place for production use.
+
+
+I've made some revisions to the code for get_user_info.rb. utils.rb now looks like this:
+
+...
+
+and get_user_info.rb looks like this:
+
+...
+
+Please write a CloudFormation template to create this Lambda function.
+
+
+Certainly! Here's a CloudFormation template to create the Lambda function for the get_user_info.rb code:
+
+yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for GetUserInfo Lambda function'
+
+Parameters:
+  LambdaRoleName:
+    Type: String
+    Default: 'GetUserInfoLambdaRole'
+    Description: 'Name of the IAM role for the Lambda function'
+
+Resources:
+  GetUserInfoLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref LambdaRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                Resource: 'arn:aws:dynamodb:us-west-2:*:table/JSC-Tracker'
+
+  GetUserInfoLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'GetUserInfo'
+      Handler: 'get_user_info.lambda_handler'
+      Role: !GetAtt GetUserInfoLambdaRole.Arn
+      Code:
+        ZipFile: |
+          require_relative './utils'
+
+          class GetUserInfo
+            def lambda_handler(event:, context:)
+              # Verify JWT and get user email
+              jwt_payload = verify_jwt(event['headers']['Authorization'].split(' ').last)
+              user_email = jwt_payload['email']
+              emailsha1 = email_to_sha1(user_email)
+
+              # Get user information
+              user = get_user(emailsha1)
+
+              # Get JSC information if user is in a JSC
+              jsc_info = nil
+              jsc_members = []
+              if user['jsc'] != '-1' && user['jsc'] != '0'
+                jsc_resp = DYNAMO_DB.get_item({
+                  table_name: TABLE_NAME,
+                  key: { 'pk' => \"#{user['jsc']}-members\" }
+                })
+                jsc_info = jsc_resp.item
+
+                # Get information for all JSC members
+                jsc_info['members'].each do |member_emailsha1|
+                  jsc_members << get_user(member_emailsha1)
+                end
+              end
+
+              {
+                statusCode: 200,
+                body: JSON.generate({
+                  user: user,
+                  jsc: jsc_info,
+                  jsc_members: jsc_members
+                })
+              }
+            rescue StandardError => e
+              {
+                statusCode: 500,
+                body: JSON.generate({ error: e.message })
+              }
+            end
+          end
+
+          GET_USER_INFO = GetUserInfo.new
+          def lambda_handler(event:, context:)
+            GET_USER_INFO.lambda_handler(event:, context:)
+          end
+      Runtime: ruby3.2
+      Timeout: 30
+      MemorySize: 128
+
+Outputs:
+  GetUserInfoLambdaFunctionArn:
+    Description: 'ARN of the GetUserInfo Lambda function'
+    Value: !GetAtt GetUserInfoLambdaFunction.Arn
+  GetUserInfoLambdaRoleArn:
+    Description: 'ARN of the IAM role for the GetUserInfo Lambda function'
+    Value: !GetAtt GetUserInfoLambdaRole.Arn
+
+
+This CloudFormation template does the following:
+
+1. Creates an IAM role (GetUserInfoLambdaRole) for the Lambda function with the necessary permissions to execute the function and access DynamoDB.
+
+2. Creates the Lambda function (GetUserInfoLambdaFunction) with the provided code.
+
+3. Sets the runtime to Ruby 3.2 (as Ruby 3.3 is not yet available in AWS Lambda at the time of writing).
+
+4. Sets a timeout of 30 seconds and allocates 128 MB of memory to the function.
+
+5. Outputs the ARNs of both the Lambda function and its IAM role.
+
+Note that this template includes the Lambda function code inline. In a real-world scenario, you might want to package your Lambda function code (including the utils.rb file) and upload it to an S3 bucket, then reference it in the CloudFormation template.
+
+Also, make sure to adjust the DynamoDB table ARN in the IAM role policy if necessary.
+
+To use this template:
+
+1. Save it as a YAML file (e.g., get_user_info_lambda.yaml).
+2. Use the AWS CLI or AWS CloudFormation console to create a stack using this template.
+
+For example, using the AWS CLI:
+
+
+aws cloudformation create-stack --stack-name get-user-info-lambda --template-body file://get_user_info_lambda.yaml --capabilities CAPABILITY_NAMED_IAM
+
+
+This will create the Lambda function and its associated IAM role in your AWS account.

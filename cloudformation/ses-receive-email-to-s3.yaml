@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SES Email Receiving Rule for infinitequack.net email addresses
+
+# This assumes -
+# * A suitable S3 bucket exists, named below
+# * An MX record for the domain exists (typically in Route53), e.g.:
+#   Record name: infinitequack.net
+#   Value: 10 inbound-smtp.us-west-2.amazonaws.com
+#
+# CloudFormation will not activate the SES rule set. This must be done in the AWS
+# console, or with this command:
+# aws ses set-active-receipt-rule-set --rule-set-name InfiniteQuackRuleSet
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: "infinitequack.net.email"
+    Description: The name of the S3 bucket to receive emails.
+  SESRoleName:
+    Type: String
+    Default: "write-infinitequack-net-email-to-s3"
+    Description: The name of the role assumed by SES to write to S3.
+  SESRuleSetName:
+    Type: String
+    Default: "InfiniteQuackRuleSet"
+    Description: The name of the rule set. Only one rule set can be active at a time.
+  SESRuleSetRegion:
+    Type: String
+    Default: "us-west-2"
+    Description: The domain of the rule set.
+
+Resources:
+  SESEmailToS3Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref SESRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        # {
+        #   "Version": "2012-10-17",
+        #   "Statement": [
+        #     {
+        #       "Sid": "stmt1742680254445",
+        #       "Effect": "Allow",
+        #       "Principal": {
+        #         "Service": "ses.amazonaws.com"
+        #       },
+        #       "Action": "sts:AssumeRole",
+        #       "Condition": {
+        #         "ArnLike": {
+        #           "AWS:SourceArn": "arn:aws:ses:us-west-2:373705399158:receipt-rule-set/InfiniteQuackRuleSet:receipt-rule/*"
+        #         }
+        #       }
+        #     }
+        #   ]
+        # }
+          - Sid: stmtSESAssumeRole
+            Effect: Allow
+            Principal:
+              Service: ses.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              ArnLike:
+                # Pattern from https://docs.aws.amazon.com/ses/latest/dg/receiving-email-permissions.html
+                AWS:SourceArn: !Sub 'arn:aws:ses:${SESRuleSetRegion}:${AWS::AccountId}:receipt-rule-set/${SESRuleSetName}:receipt-rule/*'
+      Policies:
+        - PolicyName: !Sub 'allow-ses-to-write-email-to-s3-bucket-${S3BucketName}'
+          PolicyDocument:
+          # {
+          #   "Version": "2012-10-17",
+          #   "Statement": [
+          #     {
+          #       "Sid": "S3Access",
+          #       "Effect": "Allow",
+          #       "Action": "s3:PutObject",
+          #       "Resource": "arn:aws:s3:::infinitequack.net.email/*"
+          #     }
+          #   ]
+          # }
+            Version: '2012-10-17'
+            Statement:
+              - Sid: S3Access
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub 'arn:aws:s3:::${S3BucketName}/*'
+
+  SESReceiptRuleSet:
+    Type: AWS::SES::ReceiptRuleSet
+    Properties:
+      RuleSetName: !Ref SESRuleSetName
+
+  SESReceiptRuleWebmaster:
+    Type: AWS::SES::ReceiptRule
+    DependsOn: SESEmailToS3Role
+    Properties:
+      RuleSetName: !Ref SESReceiptRuleSet
+      Rule:
+        Name: Webmaster
+        Enabled: true
+        TlsPolicy: Optional
+        Recipients:
+          - webmaster@infinitequack.net
+        ScanEnabled: true
+        Actions:
+          - S3Action:
+              BucketName: !Ref S3BucketName
+              ObjectKeyPrefix: incoming/webmaster
+              IamRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${SESRoleName}'
+
+  SESReceiptRuleJobSlog:
+    Type: AWS::SES::ReceiptRule
+    DependsOn: SESEmailToS3Role
+    Properties:
+      RuleSetName: !Ref SESReceiptRuleSet
+      Rule:
+        Name: JobSlog
+        Enabled: true
+        TlsPolicy: Optional
+        Recipients:
+          - job-slog@infinitequack.net
+        ScanEnabled: true
+        Actions:
+          - S3Action:
+              BucketName: infinitequack.net.email
+              ObjectKeyPrefix: incoming/job-slog
+              IamRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${SESRoleName}'
