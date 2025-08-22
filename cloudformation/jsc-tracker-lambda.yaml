@@ -2,36 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'CloudFormation template for JSCTracker Lambda functions'
 
 Resources:
-  JSCTrackerSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      # At the moment this is the only secret we need
-      Description: 'Salt for email SHA1'
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: 'email_sha1_salt'
-        ExcludeLowercase: false
-        ExcludeNumbers: false
-        ExcludePunctuation: true
-        ExcludeUppercase: false
-        IncludeSpace: false
-        PasswordLength: 8
-        RequireEachIncludedType: false
-      Name: 'jsc-tracker-email-sha1-salt'
-
-  JSCTrackerLambdaSecretPolicy:
-    Type: 'AWS::IAM::Policy'
-    Properties:
-      PolicyName: 'JSC-Tracker-Lambda-Secret-Access'
-      Roles:
-        - Fn::ImportValue: 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleName'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: secretsmanager:GetSecretValue
-            Resource: !Ref JSCTrackerSecret
-
   JSCTrackerGetUserUserIdLambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
