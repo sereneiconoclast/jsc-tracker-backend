@@ -36,9 +36,9 @@ def lambda_handler(event:, context:)
     if input.current_user.admin?
       # Calculate admin page URL based on origin
       admin_url = if input.origin == 'http://localhost:3000'
-        'http://localhost:3000/JSC-Tracker/roleAdmin'
+        'http://localhost:3000/JSC-Tracker/admin/'
       else # https://static.infinitequack.net
-        'https://static.infinitequack.net/JSC-Tracker/roleAdmin/'
+        'https://static.infinitequack.net/JSC-Tracker/admin/'
       end
 
       response_hash[:roles] = {
