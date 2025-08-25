@@ -151,7 +151,19 @@ module Model
     end
 
     def after_load_hook
-      # This may not be needed since Google will expire access tokens
+      # Ensure name field is populated
+      if name.blank?
+        name_parts = []
+        name_parts << given_name if given_name.present?
+        name_parts << family_name if family_name.present?
+
+        if name_parts.any?
+          self.name = name_parts.join(" ")
+        else
+          self.name = "(none)"
+        end
+      end
+
       super
     end
 
