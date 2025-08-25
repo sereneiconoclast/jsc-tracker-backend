@@ -12,37 +12,41 @@ def lambda_handler(event:, context:)
     jsc_filter = query_params['jsc']
     admin_only = query_params['admin_only'] == 'true'
 
-    # Get all users (we'll filter in memory since we have a small dataset)
-    all_users = Model::User.all
+    # If JSC filter is specified, start with JSC members for efficiency
+    if jsc_filter && jsc_filter != '-1'
+      begin
+        # Look up the JSC first
+        jsc = Model::Jsc.read(jsc_id: jsc_filter.to_i)
 
-    # Apply filters
-    filtered_users = all_users.select do |user|
+        # Get users from this JSC
+        candidate_users = jsc.users.compact
+      rescue DynamoObject::NotFoundError
+        # Return error if JSC doesn't exist
+        return {
+          error: "No such JSC: #{jsc_filter}",
+          total_count: 0,
+          users: []
+        }
+      end
+    elsif jsc_filter == '-1'
+      # Special case: unassigned users (no JSC membership)
+      # We still need to scan all users to find those without JSC
+      candidate_users = Model::User.all.select { |user| user.jsc.nil? || user.jsc.empty? }
+    else
+      # No JSC filter - start with all users
+      candidate_users = Model::User.all
+    end
+
+    # Apply remaining filters to the candidate users
+    filtered_users = candidate_users.select do |user|
       # Email filter (substring match)
       if email_filter && !user.email&.downcase&.include?(email_filter.downcase)
         next false
       end
 
-      # Name filter (substring match on given_name or family_name)
+      # Name filter (substring match)
       if name_filter
-        name_match = false
-        if user.given_name&.downcase&.include?(name_filter.downcase)
-          name_match = true
-        end
-        if user.family_name&.downcase&.include?(name_filter.downcase)
-          name_match = true
-        end
-        next false unless name_match
-      end
-
-      # JSC filter
-      if jsc_filter
-        if jsc_filter == '-1'
-          # Unassigned users (no JSC membership)
-          next false unless user.jsc.nil? || user.jsc.empty?
-        else
-          # Specific JSC
-          next false unless user.jsc == jsc_filter
-        end
+        next false unless user.name&.downcase&.include?(name_filter.downcase)
       end
 
       # Admin filter
@@ -60,8 +64,9 @@ def lambda_handler(event:, context:)
     user_results = limited_users.map do |user|
       {
         sub: user.sub,
-        name: [user.given_name, user.family_name].compact.join(' '),
+        name: user.name,
         email: user.email,
+        picture_data: user.picture_data,
         jsc: user.jsc,
         admin: user.admin?
       }
