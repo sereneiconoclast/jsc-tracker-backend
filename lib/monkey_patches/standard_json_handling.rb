@@ -2,6 +2,7 @@ require 'json'
 require 'dynamo_object'
 require 'active_support/core_ext/hash/keys' # symbolize_keys
 require 'standard_json_handler_input'
+require 'errors'
 
 module ::Kernel
   JSC_CORS_ALLOWED_ORIGINS = %w(
@@ -78,7 +79,7 @@ module ::Kernel
       headers: response_headers,
       body: JSON.generate(result_hash)
     }
-  rescue DynamoObject::NotFoundError, AuthenticationFailedError => e
+  rescue DynamoObject::NotFoundError, AuthenticationFailedError, JscNotFoundError => e
     {
       statusCode: 404,
       headers: response_headers,

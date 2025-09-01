@@ -1,5 +1,6 @@
 require_relative './monkey_patches/require_all'
 require_relative './model/require_all'
+require_relative './errors'
 
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|
@@ -21,8 +22,8 @@ def lambda_handler(event:, context:)
         # Get users from this JSC
         candidate_users = jsc.users.compact
       rescue DynamoObject::NotFoundError
-        # Throw an exception so it gets handled by standard_json_handling
-        raise "No such JSC: #{jsc_filter}"
+        # Throw a custom exception so it gets handled as a 404
+        raise JscNotFoundError, "No such JSC: #{jsc_filter}"
       end
     elsif jsc_filter == '-1'
       # Special case: unassigned users (no JSC membership)
