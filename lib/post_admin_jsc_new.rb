@@ -1,7 +1,11 @@
 require_relative 'model/require_all'
 require 'json'
 
-# POST /admin/jsc/new
+=begin
+OPERATION METADATA:
+HttpVerb: POST
+Path: /admin/jsc/new
+=end
 # Creates a new JSC and returns its number
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|

@@ -1,7 +1,11 @@
 require_relative './monkey_patches/require_all'
 require_relative './model/require_all'
 
-# POST /admin/users/assign
+=begin
+OPERATION METADATA:
+HttpVerb: POST
+Path: /admin/users/assign
+=end
 # Assigns users to a JSC
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|

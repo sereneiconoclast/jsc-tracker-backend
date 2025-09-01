@@ -1,7 +1,11 @@
 require_relative 'model/require_all'
 require 'json'
 
-# POST /user/{user_id}/contact/{contact_id}
+=begin
+OPERATION METADATA:
+HttpVerb: POST
+Path: /user/{user_id}/contact/{contact_id}
+=end
 #
 # Test from Lambda console:
 # {

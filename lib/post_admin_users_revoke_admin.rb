@@ -1,7 +1,11 @@
 require_relative './monkey_patches/require_all'
 require_relative './model/require_all'
 
-# POST /admin/users/revoke_admin
+=begin
+OPERATION METADATA:
+HttpVerb: POST
+Path: /admin/users/revoke_admin
+=end
 # Revokes admin privileges from a user
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|

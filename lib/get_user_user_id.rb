@@ -8,7 +8,11 @@ CREATE_CURRENT_USER = lambda do |access_token|
   Model::User.new(**args).write!
 end
 
-# GET /user/{user_id}
+=begin
+OPERATION METADATA:
+HttpVerb: GET
+Path: /user/{user_id}
+=end
 def lambda_handler(event:, context:)
   standard_json_handling(event: event, create_current_user: CREATE_CURRENT_USER) do |input|
     # Load the user's most recent contacts

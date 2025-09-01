@@ -2,6 +2,15 @@ require_relative './monkey_patches/require_all'
 require_relative './model/require_all'
 require_relative './errors'
 
+=begin
+OPERATION METADATA:
+HttpVerb: GET
+Path: /admin/users/search
+Query: OPTIONAL email
+Query: OPTIONAL name
+Query: OPTIONAL jsc
+Query: OPTIONAL admin_only
+=end
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|
     # Admin check is already handled by standard_json_handling.rb

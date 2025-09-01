@@ -1,7 +1,11 @@
 require_relative './monkey_patches/require_all'
 require_relative './model/require_all'
 
-# POST /admin/users/grant_admin
+=begin
+OPERATION METADATA:
+HttpVerb: POST
+Path: /admin/users/grant_admin
+=end
 # Grants admin privileges to a user
 def lambda_handler(event:, context:)
   standard_json_handling(event: event) do |input|
