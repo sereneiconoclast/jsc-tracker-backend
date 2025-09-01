@@ -21,12 +21,8 @@ def lambda_handler(event:, context:)
         # Get users from this JSC
         candidate_users = jsc.users.compact
       rescue DynamoObject::NotFoundError
-        # Return error if JSC doesn't exist
-        return {
-          error: "No such JSC: #{jsc_filter}",
-          total_count: 0,
-          users: []
-        }
+        # Throw an exception so it gets handled by standard_json_handling
+        raise "No such JSC: #{jsc_filter}"
       end
     elsif jsc_filter == '-1'
       # Special case: unassigned users (no JSC membership)
