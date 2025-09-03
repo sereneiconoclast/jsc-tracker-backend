@@ -17,6 +17,30 @@ class CloudFormationTemplateBuilder
     end
   end
 
+  def lambda_function(operation_name)
+    operation = operations[operation_name]
+    raise "Operation '#{operation_name}' not found" unless operation
+
+    function_name = "JSCTracker#{operation_name}"
+    handler_name = "#{operation[:filename]}.lambda_handler"
+
+    <<~YAML
+  #{function_name}LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: '#{function_name}'
+      Handler: '#{handler_name}'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+YAML
+  end
+
   private
 
   def handler_files
