@@ -100,6 +100,50 @@ YAML
     out
   end
 
+  def options_method(operation_name)
+    operation = operations[operation_name]
+    raise "Operation '#{operation_name}' not found" unless operation
+
+    method_name = "JSCTrackerOptions#{remove_verb_prefix_from_operation_name(operation_name)}Method"
+    resource_name = resource_name_for_operation(operation_name)
+
+    # Indented by 2 spaces
+    <<YAML
+  #{method_name}:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref #{resource_name}
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '.*'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Max-Age: "'600'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Max-Age: true
+          ResponseModels:
+            application/json: Empty
+YAML
+  end
+
   def lambda_template
     out = <<~YAML
       AWSTemplateFormatVersion: '2010-09-09'
@@ -134,10 +178,12 @@ YAML
   #           PostAdminJscNew -> JSCTrackerAdminJscNewResource
   #           GetAdminUsersSearch -> JSCTrackerAdminUsersSearchResource
   def resource_name_for_operation(operation_name)
-    # Remove the HTTP verb prefix (Get, Post, etc.)
-    path_part = operation_name.gsub(/^(Get|Post|Put|Delete|Options)/, '')
+    "JSCTracker#{remove_verb_prefix_from_operation_name(operation_name)}Resource"
+  end
 
-    "JSCTracker#{path_part}Resource"
+  # Remove the HTTP verb prefix (Get, Post, etc.)
+  def remove_verb_prefix_from_operation_name(operation_name)
+    operation_name.gsub(/^(Get|Post|Put|Delete|Options)/, '')
   end
 
   def build_request_parameters(operation)
@@ -245,7 +291,9 @@ if __FILE__ == $0
       puts(builder.lambda_function_arn_stack_output(ARGV[2]))
     when 'main-method'
       puts(builder.main_method(ARGV[2]))
-    else raise "Expected 'lambda', 'output', or 'main-method'"
+    when 'options-method'
+      puts(builder.options_method(ARGV[2]))
+    else raise "Expected 'lambda', 'output', 'main-method', or 'options-method'"
     end
   else raise "Expected 'operations', 'template', or 'operation'"
   end
