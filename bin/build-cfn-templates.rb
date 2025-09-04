@@ -64,6 +64,42 @@ YAML
 YAML
   end
 
+  def main_method(operation_name)
+    operation = operations[operation_name]
+    raise "Operation '#{operation_name}' not found" unless operation
+
+    method_name = "JSCTracker#{operation_name}Method"
+    resource_name = resource_name_for_operation(operation_name)
+    function_name = "JSCTracker#{operation_name}"
+
+    # Build RequestParameters section
+    request_params = build_request_parameters(operation)
+
+    # Indented by 2 spaces
+    out = <<YAML
+  #{method_name}:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref #{resource_name}
+      HttpMethod: #{operation[:http_verb]}
+      AuthorizationType: NONE
+YAML
+    out << request_params # may be empty
+
+    # Indented by 6 spaces
+    out << <<YAML
+      Integration:
+        Type: AWS_PROXY
+        # This must be POST, per https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apigateway-method-integration.html
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-#{function_name}LambdaFunctionArn
+YAML
+    out
+  end
+
   def lambda_template
     out = <<~YAML
       AWSTemplateFormatVersion: '2010-09-09'
@@ -87,6 +123,37 @@ YAML
 
   def say(s)
     puts(s) if debug?
+  end
+
+  # Convert operation name to resource name
+  # In CloudFormation, an AWS::ApiGateway::Resource is basically a path,
+  # such as /user/{user_id}/contact/new
+  # This method returns the name of the resource for the path where the given
+  # operation_name may be reached
+  # Examples: GetUserUserId -> JSCTrackerUserUserIdResource
+  #           PostAdminJscNew -> JSCTrackerAdminJscNewResource
+  #           GetAdminUsersSearch -> JSCTrackerAdminUsersSearchResource
+  def resource_name_for_operation(operation_name)
+    # Remove the HTTP verb prefix (Get, Post, etc.)
+    path_part = operation_name.gsub(/^(Get|Post|Put|Delete|Options)/, '')
+
+    "JSCTracker#{path_part}Resource"
+  end
+
+  def build_request_parameters(operation)
+    # Add path parameters based on the path - extract any {param_name} patterns
+    path_params = operation[:path].scan(/\{([a-z0-9_]+)\}/).map(&:first).map do |path_param|
+      "        method.request.path.#{path_param}: true"
+    end
+
+    # Add query parameters
+    query_params = operation[:query].map do |param_name, required|
+      "        method.request.querystring.#{param_name}: #{required}"
+    end
+
+    params = path_params + query_params
+    return '' if params.empty?
+    "      RequestParameters:\n" + params.join("\n") + "\n"
   end
 
   def handler_files
@@ -176,7 +243,9 @@ if __FILE__ == $0
       puts(builder.lambda_function(ARGV[2]))
     when 'output'
       puts(builder.lambda_function_arn_stack_output(ARGV[2]))
-    else raise "Expected 'lambda' or 'output'"
+    when 'main-method'
+      puts(builder.main_method(ARGV[2]))
+    else raise "Expected 'lambda', 'output', or 'main-method'"
     end
   else raise "Expected 'operations', 'template', or 'operation'"
   end
