@@ -144,6 +144,25 @@ YAML
 YAML
   end
 
+  def lambda_permission(operation_name)
+    operation = operations[operation_name]
+    raise "Operation '#{operation_name}' not found" unless operation
+
+    permission_name = "JSCTrackerLambdaPermission#{operation_name}"
+    function_name = "JSCTracker#{operation_name}"
+
+    # Indented by 2 spaces
+    <<YAML
+  #{permission_name}:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-#{function_name}LambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+YAML
+  end
+
   def lambda_template
     out = <<~YAML
       AWSTemplateFormatVersion: '2010-09-09'
@@ -293,7 +312,9 @@ if __FILE__ == $0
       puts(builder.main_method(ARGV[2]))
     when 'options-method'
       puts(builder.options_method(ARGV[2]))
-    else raise "Expected 'lambda', 'output', 'main-method', or 'options-method'"
+    when 'lambda-permission'
+      puts(builder.lambda_permission(ARGV[2]))
+    else raise "Expected 'lambda', 'output', 'main-method', 'options-method', or 'lambda-permission'"
     end
   else raise "Expected 'operations', 'template', or 'operation'"
   end
