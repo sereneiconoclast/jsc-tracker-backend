@@ -724,15 +724,3 @@ Outputs:
       - RegionalDomainName
     Export:
       Name: !Sub '${AWS::StackName}-JSCTrackerRegionalDomainName'
-
-  JSCTrackerApiRootResourceId:
-    Description: Root resource ID of the API
-    Value: !GetAtt JSCTrackerApi.RootResourceId
-    Export:
-      Name: !Sub '${AWS::StackName}-JSCTrackerApiRootResourceId'
-
-  JSCTrackerGetUserUserIdMethodId:
-    Description: ID of the GetUserUserId method
-    Value: !Ref JSCTrackerGetUserUserIdMethod
-    Export:
-      Name: !Sub '${AWS::StackName}-JSCTrackerGetUserUserIdMethodId'
