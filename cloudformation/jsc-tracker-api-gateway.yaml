@@ -166,7 +166,6 @@ Resources:
       AuthorizationType: NONE
       RequestParameters:
         method.request.path.user_id: true
-        method.request.querystring.brief: false
       Integration:
         Type: AWS_PROXY
         # This must be POST, per https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apigateway-method-integration.html
@@ -219,7 +218,6 @@ Resources:
       AuthorizationType: NONE
       RequestParameters:
         method.request.path.user_id: true
-        method.request.querystring.brief: false
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
