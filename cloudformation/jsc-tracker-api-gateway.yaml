@@ -44,6 +44,7 @@ Resources:
          # https://docs.aws.amazon.com/general/latest/gr/apigateway.html
          HostedZoneId: Z2OJLYMUO9EFXC
 
+  # /
   JSCTrackerBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Properties:
@@ -51,6 +52,70 @@ Resources:
       DomainName: !Ref JSCTrackerDomainName
       RestApiId: !Ref JSCTrackerApi
       Stage: 'prod'
+
+  # /admin
+  JSCTrackerAdminResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt JSCTrackerApi.RootResourceId
+      PathPart: admin
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/jsc
+  JSCTrackerAdminJscResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminResource
+      PathPart: jsc
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/jsc/new
+  JSCTrackerAdminJscNewResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminJscResource
+      PathPart: new
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/users
+  JSCTrackerAdminUsersResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminResource
+      PathPart: users
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/users/assign
+  JSCTrackerAdminUsersAssignResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminUsersResource
+      PathPart: assign
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/users/grant_admin
+  JSCTrackerAdminUsersGrantAdminResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminUsersResource
+      PathPart: grant_admin
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/users/revoke_admin
+  JSCTrackerAdminUsersRevokeAdminResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminUsersResource
+      PathPart: revoke_admin
+      RestApiId: !Ref JSCTrackerApi
+
+  # /admin/users/search
+  JSCTrackerAdminUsersSearchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref JSCTrackerAdminUsersResource
+      PathPart: search
+      RestApiId: !Ref JSCTrackerApi
 
   # /user
   JSCTrackerUserResource:
@@ -92,69 +157,85 @@ Resources:
       PathPart: "{contact_id}"
       RestApiId: !Ref JSCTrackerApi
 
-  # /admin
-  JSCTrackerAdminResource:
-    Type: AWS::ApiGateway::Resource
+  # POST /admin/jsc/new
+  JSCTrackerPostAdminJscNewMethod:
+    Type: AWS::ApiGateway::Method
     Properties:
-      ParentId: !GetAtt JSCTrackerApi.RootResourceId
-      PathPart: admin
       RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminJscNewResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminJscNewLambdaFunctionArn
 
-  # /admin/jsc
-  JSCTrackerAdminJscResource:
-    Type: AWS::ApiGateway::Resource
+  # POST /admin/users/assign
+  JSCTrackerPostAdminUsersAssignMethod:
+    Type: AWS::ApiGateway::Method
     Properties:
-      ParentId: !Ref JSCTrackerAdminResource
-      PathPart: jsc
       RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersAssignResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminUsersAssignLambdaFunctionArn
 
-  # /admin/jsc/new
-  JSCTrackerAdminJscNewResource:
-    Type: AWS::ApiGateway::Resource
+  # POST /admin/users/grant_admin
+  JSCTrackerPostAdminUsersGrantAdminMethod:
+    Type: AWS::ApiGateway::Method
     Properties:
-      ParentId: !Ref JSCTrackerAdminJscResource
-      PathPart: new
       RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersGrantAdminResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminUsersGrantAdminLambdaFunctionArn
 
-  # /admin/users
-  JSCTrackerAdminUsersResource:
-    Type: AWS::ApiGateway::Resource
+  # POST /admin/users/revoke_admin
+  JSCTrackerPostAdminUsersRevokeAdminMethod:
+    Type: AWS::ApiGateway::Method
     Properties:
-      ParentId: !Ref JSCTrackerAdminResource
-      PathPart: users
       RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersRevokeAdminResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminUsersRevokeAdminLambdaFunctionArn
 
-  # /admin/users/search
-  JSCTrackerAdminUsersSearchResource:
-    Type: AWS::ApiGateway::Resource
+  # GET /admin/users/search
+  JSCTrackerGetAdminUsersSearchMethod:
+    Type: AWS::ApiGateway::Method
     Properties:
-      ParentId: !Ref JSCTrackerAdminUsersResource
-      PathPart: search
       RestApiId: !Ref JSCTrackerApi
-
-  # /admin/users/assign
-  JSCTrackerAdminUsersAssignResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref JSCTrackerAdminUsersResource
-      PathPart: assign
-      RestApiId: !Ref JSCTrackerApi
-
-  # /admin/users/grant_admin
-  JSCTrackerAdminUsersGrantAdminResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref JSCTrackerAdminUsersResource
-      PathPart: grant_admin
-      RestApiId: !Ref JSCTrackerApi
-
-  # /admin/users/revoke_admin
-  JSCTrackerAdminUsersRevokeAdminResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref JSCTrackerAdminUsersResource
-      PathPart: revoke_admin
-      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerAdminUsersSearchResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.querystring.email: false
+        method.request.querystring.name: false
+        method.request.querystring.jsc: false
+        method.request.querystring.admin_only: false
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn
 
   # GET /user/{user_id}
   JSCTrackerGetUserUserIdMethod:
@@ -173,40 +254,6 @@ Resources:
         Uri: !Sub
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetUserUserIdLambdaFunctionArn
-
-  # OPTIONS /user/{user_id}
-  JSCTrackerOptionsUserUserIdMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerUserUserIdResource
-      HttpMethod: OPTIONS
-      AuthorizationType: NONE
-      RequestParameters:
-        method.request.header.Origin: true
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            SelectionPattern: '.*'
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              method.response.header.Access-Control-Max-Age: "'600'"
-            ResponseTemplates:
-              application/json: ''
-      MethodResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Origin: true
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Max-Age: true
-          ResponseModels:
-            application/json: Empty
 
   # POST /user/{user_id}
   JSCTrackerPostUserUserIdMethod:
@@ -260,194 +307,12 @@ Resources:
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostUserUserIdContactContactIdLambdaFunctionArn
 
-  # POST /admin/jsc/new
-  JSCTrackerPostAdminJscNewMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerAdminJscNewResource
-      HttpMethod: POST
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub
-          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
-          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminJscNewLambdaFunctionArn
-
-  # GET /admin/users/search
-  JSCTrackerGetAdminUsersSearchMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerAdminUsersSearchResource
-      HttpMethod: GET
-      AuthorizationType: NONE
-      RequestParameters:
-        method.request.querystring.email: false
-        method.request.querystring.name: false
-        method.request.querystring.jsc: false
-        method.request.querystring.admin_only: false
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub
-          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
-          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn
-
-  # POST /admin/users/assign
-  JSCTrackerPostAdminUsersAssignMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerAdminUsersAssignResource
-      HttpMethod: POST
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub
-          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
-          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminUsersAssignLambdaFunctionArn
-
-  # POST /admin/users/grant_admin
-  JSCTrackerPostAdminUsersGrantAdminMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerAdminUsersGrantAdminResource
-      HttpMethod: POST
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub
-          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
-          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminUsersGrantAdminLambdaFunctionArn
-
-  # POST /admin/users/revoke_admin
-  JSCTrackerPostAdminUsersRevokeAdminMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerAdminUsersRevokeAdminResource
-      HttpMethod: POST
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub
-          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
-          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostAdminUsersRevokeAdminLambdaFunctionArn
-
-  # OPTIONS /user/{user_id}/contact/{contact_id}
-  JSCTrackerOptionsUserUserIdContactContactIdMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerUserUserIdContactContactIdResource
-      HttpMethod: OPTIONS
-      AuthorizationType: NONE
-      RequestParameters:
-        method.request.header.Origin: true
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            SelectionPattern: '.*'
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              method.response.header.Access-Control-Max-Age: "'600'"
-            ResponseTemplates:
-              application/json: ''
-      MethodResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Origin: true
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Max-Age: true
-          ResponseModels:
-            application/json: Empty
-
-  # OPTIONS /user/{user_id}/contact/new
-  JSCTrackerOptionsUserUserIdContactNewMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerUserUserIdContactNewResource
-      HttpMethod: OPTIONS
-      AuthorizationType: NONE
-      RequestParameters:
-        method.request.header.Origin: true
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            SelectionPattern: '.*'
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              method.response.header.Access-Control-Max-Age: "'600'"
-            ResponseTemplates:
-              application/json: ''
-      MethodResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Origin: true
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Max-Age: true
-          ResponseModels:
-            application/json: Empty
-
   # OPTIONS /admin/jsc/new
   JSCTrackerOptionsAdminJscNewMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref JSCTrackerApi
       ResourceId: !Ref JSCTrackerAdminJscNewResource
-      HttpMethod: OPTIONS
-      AuthorizationType: NONE
-      RequestParameters:
-        method.request.header.Origin: true
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            SelectionPattern: '.*'
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              method.response.header.Access-Control-Max-Age: "'600'"
-            ResponseTemplates:
-              application/json: ''
-      MethodResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Origin: true
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Max-Age: true
-          ResponseModels:
-            application/json: Empty
-
-  # OPTIONS /admin/users/search
-  JSCTrackerOptionsAdminUsersSearchMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerAdminUsersSearchResource
       HttpMethod: OPTIONS
       AuthorizationType: NONE
       RequestParameters:
@@ -578,12 +443,12 @@ Resources:
           ResponseModels:
             application/json: Empty
 
-  # OPTIONS /user
-  JSCTrackerOptionsUserMethod:
+  # OPTIONS /admin/users/search
+  JSCTrackerOptionsAdminUsersSearchMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref JSCTrackerApi
-      ResourceId: !Ref JSCTrackerUserResource
+      ResourceId: !Ref JSCTrackerAdminUsersSearchResource
       HttpMethod: OPTIONS
       AuthorizationType: NONE
       RequestParameters:
@@ -612,6 +477,142 @@ Resources:
           ResponseModels:
             application/json: Empty
 
+  # OPTIONS /user/{user_id}
+  JSCTrackerOptionsUserUserIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerUserUserIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '.*'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Max-Age: "'600'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Max-Age: true
+          ResponseModels:
+            application/json: Empty
+
+  # OPTIONS /user/{user_id}/contact/new
+  JSCTrackerOptionsUserUserIdContactNewMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerUserUserIdContactNewResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '.*'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Max-Age: "'600'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Max-Age: true
+          ResponseModels:
+            application/json: Empty
+
+  # OPTIONS /user/{user_id}/contact/{contact_id}
+  JSCTrackerOptionsUserUserIdContactContactIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerUserUserIdContactContactIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.header.Origin: true
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '.*'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Max-Age: "'600'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Max-Age: true
+          ResponseModels:
+            application/json: Empty
+
+  # OPTIONS /user
+  # JSCTrackerOptionsUserMethod:
+  #   Type: AWS::ApiGateway::Method
+  #   Properties:
+  #     RestApiId: !Ref JSCTrackerApi
+  #     ResourceId: !Ref JSCTrackerUserResource
+  #     HttpMethod: OPTIONS
+  #     AuthorizationType: NONE
+  #     RequestParameters:
+  #       method.request.header.Origin: true
+  #     Integration:
+  #       Type: MOCK
+  #       RequestTemplates:
+  #         application/json: '{"statusCode": 200}'
+  #       IntegrationResponses:
+  #         - StatusCode: 200
+  #           SelectionPattern: '.*'
+  #           ResponseParameters:
+  #             method.response.header.Access-Control-Allow-Origin: "'*'"
+  #             method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+  #             method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+  #             method.response.header.Access-Control-Max-Age: "'600'"
+  #           ResponseTemplates:
+  #             application/json: ''
+  #     MethodResponses:
+  #       - StatusCode: 200
+  #         ResponseParameters:
+  #           method.response.header.Access-Control-Allow-Origin: true
+  #           method.response.header.Access-Control-Allow-Headers: true
+  #           method.response.header.Access-Control-Allow-Methods: true
+  #           method.response.header.Access-Control-Max-Age: true
+  #         ResponseModels:
+  #           application/json: Empty
+
   JSCTrackerDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties:
@@ -619,24 +620,64 @@ Resources:
       StageName: prod
       Description: !Sub "Deployment ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}-${AWS::StackId}"
     DependsOn:
+      - JSCTrackerPostAdminJscNewMethod
+      - JSCTrackerPostAdminUsersAssignMethod
+      - JSCTrackerPostAdminUsersGrantAdminMethod
+      - JSCTrackerPostAdminUsersRevokeAdminMethod
+      - JSCTrackerGetAdminUsersSearchMethod
       - JSCTrackerGetUserUserIdMethod
       - JSCTrackerPostUserUserIdMethod
       - JSCTrackerPostUserUserIdContactNewMethod
       - JSCTrackerPostUserUserIdContactContactIdMethod
-      - JSCTrackerPostAdminJscNewMethod
-      - JSCTrackerGetAdminUsersSearchMethod
-      - JSCTrackerPostAdminUsersAssignMethod
-      - JSCTrackerPostAdminUsersGrantAdminMethod
-      - JSCTrackerPostAdminUsersRevokeAdminMethod
-      - JSCTrackerOptionsUserUserIdMethod
-      - JSCTrackerOptionsUserUserIdContactNewMethod
-      - JSCTrackerOptionsUserUserIdContactContactIdMethod
       - JSCTrackerOptionsAdminJscNewMethod
-      - JSCTrackerOptionsAdminUsersSearchMethod
       - JSCTrackerOptionsAdminUsersAssignMethod
       - JSCTrackerOptionsAdminUsersGrantAdminMethod
       - JSCTrackerOptionsAdminUsersRevokeAdminMethod
-      - JSCTrackerOptionsUserMethod
+      - JSCTrackerOptionsAdminUsersSearchMethod
+      - JSCTrackerOptionsUserUserIdMethod
+      - JSCTrackerOptionsUserUserIdContactNewMethod
+      - JSCTrackerOptionsUserUserIdContactContactIdMethod
+#     - JSCTrackerOptionsUserMethod
+
+  JSCTrackerLambdaPermissionPostAdminJscNew:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminJscNewLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionPostAdminUsersAssign:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminUsersAssignLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionPostAdminUsersGrantAdmin:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminUsersGrantAdminLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionPostAdminUsersRevokeAdmin:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminUsersRevokeAdminLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionGetAdminUsersSearch:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
 
   JSCTrackerLambdaPermissionGetUserUserId:
     Type: AWS::Lambda::Permission
@@ -668,46 +709,6 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName:
         !ImportValue 'jsc-tracker-lambda-JSCTrackerPostUserUserIdContactContactIdLambdaFunctionArn'
-      Principal: apigateway.amazonaws.com
-
-  JSCTrackerLambdaPermissionPostAdminJscNew:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminJscNewLambdaFunctionArn'
-      Principal: apigateway.amazonaws.com
-
-  JSCTrackerLambdaPermissionGetAdminUsersSearch:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        !ImportValue 'jsc-tracker-lambda-JSCTrackerGetAdminUsersSearchLambdaFunctionArn'
-      Principal: apigateway.amazonaws.com
-
-  JSCTrackerLambdaPermissionPostAdminUsersAssign:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminUsersAssignLambdaFunctionArn'
-      Principal: apigateway.amazonaws.com
-
-  JSCTrackerLambdaPermissionPostAdminUsersGrantAdmin:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminUsersGrantAdminLambdaFunctionArn'
-      Principal: apigateway.amazonaws.com
-
-  JSCTrackerLambdaPermissionPostAdminUsersRevokeAdmin:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        !ImportValue 'jsc-tracker-lambda-JSCTrackerPostAdminUsersRevokeAdminLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
 Outputs:
