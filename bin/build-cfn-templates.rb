@@ -164,13 +164,22 @@ YAML
 YAML
   end
 
+  # This returns the resource name, just like resource_name_for_path
+  # There are three big differences:
+  #
+  # 1) It knows how to respond to path "/"
+  # 2) It has a side-effect of populating @path_to_resource with the
+  #    full resource definition
+  # 3) It recursively calls itself with the parent path to ensure all
+  #    parent path resources have also been calculated
   def resource_name_for_path(path)
     return "!GetAtt JSCTrackerApi.RootResourceId" if path == "/"
 
+    # Retrieve from cache if already calculated
     return @path_to_resource[path][:name] if @path_to_resource[path]
 
     # Calculate parent path
-    parent_path = path.gsub(/\/[^\/]*$/, '')
+    parent_path = path.gsub(%r!/[^/]*$!, '')
     parent_path = "/" if parent_path.empty?
 
     # Recursively ensure parent exists
@@ -199,7 +208,7 @@ YAML
 
   def resource_definition(path)
     resource_info = resource_for_path(path)
-    return nil if resource_info.nil?
+    raise "Unexpected: no resource_for_path(#{path})" unless resource_info
 
     resource_name = resource_info[:name]
     path_part = resource_info[:path_part]
@@ -235,6 +244,68 @@ YAML
     out
   end
 
+  def api_gateway_template
+    # Zero indent
+    out = <<YAML
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  JSCTrackerDomainName:
+    Type: String
+    Default: "jsc-tracker.infinitequack.net"
+    Description: The domain name for the API Gateway.
+  HostedZoneId:
+    Type: String
+    Default: "Z04354022LVBEOB5Q6PK4"
+    Description: The zone ID in Route53.
+
+Resources:
+  JSCTrackerApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: JSC-Tracker
+      Description: API Gateway for JSC Tracker
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      # This appears to be necessary in order to create the alias 'A' record
+      DisableExecuteApiEndpoint: false
+
+  JSCTrackerCustomDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      RegionalCertificateArn: !ImportValue 'domain-certificate-DomainCertificateArn'
+      DomainName: !Ref JSCTrackerDomainName
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  JSCTrackerDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref JSCTrackerDomainName
+      Type: A
+      AliasTarget:
+         DNSName: !GetAtt
+          - JSCTrackerCustomDomainName
+          - RegionalDomainName
+         # https://docs.aws.amazon.com/general/latest/gr/apigateway.html
+         HostedZoneId: Z2OJLYMUO9EFXC
+
+  # /
+  JSCTrackerBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      BasePath: ''
+      DomainName: !Ref JSCTrackerDomainName
+      RestApiId: !Ref JSCTrackerApi
+      Stage: 'prod'
+
+YAML
+    out
+  end
+
   private
 
   def say(s)
@@ -256,20 +327,15 @@ YAML
     resource_name_for_path(operation[:path])
   end
 
+  # Convert path to resource name
+  # /user/{user_id}/contact/new -> JSCTrackerUserUserIdContactNewResource
   def path_to_resource_name(path)
-    return "RootResourceId" if path == "/"
+    raise "Unexpected call path_to_resource_name('/')" if path == "/"
 
-    # Convert path to resource name
-    # /user/{user_id}/contact/new -> JSCTrackerUserUserIdContactNewResource
     path_parts = path.split('/').reject(&:empty?)
     resource_name = path_parts.map do |part|
-      if part.start_with?('{') && part.end_with?('}')
-        # Path parameter like {user_id} -> UserUserId
-        part[1..-2].split('_').map(&:capitalize).join
-      else
-        # Regular path part like "contact" -> Contact
-        part.capitalize
-      end
+      part = part[1..-2] if part.start_with?('{') && part.end_with?('}')
+      part.camelize
     end.join
 
     "JSCTracker#{resource_name}Resource"
@@ -375,7 +441,9 @@ if __FILE__ == $0
     case ARGV[1]
     when 'lambda'
       puts(builder.lambda_template)
-    else raise "Expected 'lambda'"
+    when 'api-gateway'
+      puts(builder.api_gateway_template)
+    else raise "Expected 'lambda' or 'apigateway'"
     end
   when 'operation'
     case ARGV[1]
