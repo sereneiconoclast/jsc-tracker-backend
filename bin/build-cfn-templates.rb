@@ -10,6 +10,7 @@ require 'active_support/core_ext/string/inflections' # camelize
 class CloudFormationTemplateBuilder
   def initialize
     @lib_dir = Pathname.new(__dir__).parent / 'lib'
+    @path_to_resource = {}  # Cache for resource definitions by path
   end
 
   attr_accessor :debug
@@ -163,6 +164,58 @@ YAML
 YAML
   end
 
+  def resource_name_for_path(path)
+    return "!GetAtt JSCTrackerApi.RootResourceId" if path == "/"
+
+    return @path_to_resource[path][:name] if @path_to_resource[path]
+
+    # Calculate parent path
+    parent_path = path.gsub(/\/[^\/]*$/, '')
+    parent_path = "/" if parent_path.empty?
+
+    # Recursively ensure parent exists
+    parent_resource_name = resource_name_for_path(parent_path)
+
+    # Generate resource name and definition
+    resource_name = path_to_resource_name(path)
+    path_part = path.split('/').last
+
+    # Create resource definition
+    resource_def = {
+      name: resource_name,
+      path: path,
+      path_part: path_part,
+      parent_resource_name: parent_resource_name
+    }
+
+    @path_to_resource[path] = resource_def
+    resource_name
+  end
+
+  def resource_for_path(path)
+    resource_name_for_path(path)  # Ensure cache is populated
+    @path_to_resource[path]
+  end
+
+  def resource_definition(path)
+    resource_info = resource_for_path(path)
+    return nil if resource_info.nil?
+
+    resource_name = resource_info[:name]
+    path_part = resource_info[:path_part]
+    parent_resource_name = resource_info[:parent_resource_name]
+
+    # Indented by 2 spaces
+    <<YAML
+  #{resource_name}:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: #{parent_resource_name}
+      PathPart: "#{path_part}"
+      RestApiId: !Ref JSCTrackerApi
+YAML
+  end
+
   def lambda_template
     out = <<~YAML
       AWSTemplateFormatVersion: '2010-09-09'
@@ -197,7 +250,29 @@ YAML
   #           PostAdminJscNew -> JSCTrackerAdminJscNewResource
   #           GetAdminUsersSearch -> JSCTrackerAdminUsersSearchResource
   def resource_name_for_operation(operation_name)
-    "JSCTracker#{remove_verb_prefix_from_operation_name(operation_name)}Resource"
+    operation = operations[operation_name]
+    raise "Operation '#{operation_name}' not found" unless operation
+
+    resource_name_for_path(operation[:path])
+  end
+
+  def path_to_resource_name(path)
+    return "RootResourceId" if path == "/"
+
+    # Convert path to resource name
+    # /user/{user_id}/contact/new -> JSCTrackerUserUserIdContactNewResource
+    path_parts = path.split('/').reject(&:empty?)
+    resource_name = path_parts.map do |part|
+      if part.start_with?('{') && part.end_with?('}')
+        # Path parameter like {user_id} -> UserUserId
+        part[1..-2].split('_').map(&:capitalize).join
+      else
+        # Regular path part like "contact" -> Contact
+        part.capitalize
+      end
+    end.join
+
+    "JSCTracker#{resource_name}Resource"
   end
 
   # Remove the HTTP verb prefix (Get, Post, etc.)
@@ -310,12 +385,15 @@ if __FILE__ == $0
       puts(builder.lambda_function_arn_stack_output(ARGV[2]))
     when 'main-method'
       puts(builder.main_method(ARGV[2]))
+      say(builder.resource_definition(builder.operations[ARGV[2]][:path]))
     when 'options-method'
       puts(builder.options_method(ARGV[2]))
     when 'lambda-permission'
       puts(builder.lambda_permission(ARGV[2]))
     else raise "Expected 'lambda', 'output', 'main-method', 'options-method', or 'lambda-permission'"
     end
-  else raise "Expected 'operations', 'template', or 'operation'"
+  when 'path'
+    puts(builder.resource_definition(ARGV[1]))
+  else raise "Expected 'operations', 'template', 'operation', or 'path'"
   end
 end
