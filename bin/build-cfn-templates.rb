@@ -245,6 +245,9 @@ YAML
   end
 
   def api_gateway_template
+    # 1. Fixed portion at the beginning (unique entries: Parameters, the Resources
+    #    line, JSCTrackerApi, domain name, and DNS entry)
+
     # Zero indent
     out = <<YAML
 AWSTemplateFormatVersion: '2010-09-09'
@@ -303,6 +306,47 @@ Resources:
       Stage: 'prod'
 
 YAML
+
+    # 2. Resources ordered by path, starting with / (the base path mapping) and
+    #    alphabetically, so /admin comes before /user, and /user/z comes before /user/{a}
+
+
+    # 3. All the main-method operations, sorted by path, and when there are two with the
+    #    same path (as with GET /user/{user_id} and POST /user/{user_id}), alphabetically
+    #    by the verb (GET before POST)
+
+
+    # 4. All the OPTIONS entries, sorted by path
+
+
+    # 5. JSCTrackerDeployment which is a unique entry, with the DependsOn: in the same
+    #    ordering as the main-methods and OPTIONS entries appeared above it
+
+
+    # 6. The permissions entries, sorted by path
+
+
+    # 7. Finally, the Outputs: section at the end which is fixed
+
+    # Zero indent
+    out << YAML
+
+Outputs:
+  JSCTrackerApiId:
+    Description: ID of the REST API
+    Value: !Ref JSCTrackerApi
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerApiId'
+
+  JSCTrackerRegionalDomainName:
+    Description: Regional domain name of the API
+    Value: !GetAtt
+      - JSCTrackerCustomDomainName
+      - RegionalDomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerRegionalDomainName'
+YAML
+
     out
   end
 
