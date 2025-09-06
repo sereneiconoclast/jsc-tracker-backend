@@ -575,7 +575,6 @@ if __FILE__ == $0
       puts(builder.lambda_function_arn_stack_output(ARGV[2]))
     when 'main-method'
       puts(builder.main_method(ARGV[2]))
-      say(builder.resource_definition(builder.operations[ARGV[2]][:path]))
     when 'options-method'
       puts(builder.options_method(ARGV[2]))
     when 'lambda-permission'

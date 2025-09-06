@@ -137,6 +137,14 @@ module Model
       c
     end
 
+    def archive_contact(contact_id)
+      # Remove from contact_id_list
+      self.contact_id_list = self.contact_id_list - [contact_id]
+      # Add to archived_contact_id_list (prepend to put most recent first)
+      prepend_id_to_field(:archived_contact_id_list, contact_id)
+      write!
+    end
+
     # Assign user to a JSC
     # Return this object if modified, otherwise nil
     def assign_to_jsc(jsc_number)
