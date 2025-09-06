@@ -541,6 +541,15 @@ end
 if __FILE__ == $0
   builder = CloudFormationTemplateBuilder.new
   case ARGV[0]
+  when 'rebuild'
+    raise "No argument expected" if ARGV[1]
+    cfn_dir = Pathname.new(__FILE__).parent.parent / 'cloudformation'
+    %w(lambda api_gateway).each do |template_name|
+      path = cfn_dir / "jsc-tracker-#{template_name.gsub('_', '-')}.yaml"
+      content = builder.public_send("#{template_name}_template".to_sym)
+      File.write(path.to_s, content)
+      puts("Wrote #{content.size} chars to #{path}")
+    end
   when 'operations'
     builder.debug = true
     raise "No argument expected" if ARGV[1]
@@ -575,6 +584,6 @@ if __FILE__ == $0
     end
   when 'path'
     puts(builder.resource_definition(ARGV[1]))
-  else raise "Expected 'operations', 'template', 'operation', or 'path'"
+  else raise "Expected 'rebuild', 'operations', 'template', 'operation', or 'path'"
   end
 end
