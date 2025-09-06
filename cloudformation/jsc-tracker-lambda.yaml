@@ -2,6 +2,20 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'CloudFormation template for JSCTracker Lambda functions'
 
 Resources:
+  JSCTrackerDeleteUserUserIdContactContactIdLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'JSCTrackerDeleteUserUserIdContactContactId'
+      Handler: 'delete_user_user_id_contact_contact_id.lambda_handler'
+      Role:
+        !ImportValue 'jsc-tracker-dynamodb-JSCTrackerDynamoDBRoleArn'
+      Code:
+        S3Bucket: 'static.us-west-2.infinitequack.net'
+        S3Key: 'lambda/jsc-tracker-lambda.zip'
+      Runtime: ruby3.3
+      Timeout: 30
+      MemorySize: 128
+
   JSCTrackerGetAdminUsersSearchLambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
@@ -129,6 +143,11 @@ Resources:
       MemorySize: 128
 
 Outputs:
+  JSCTrackerDeleteUserUserIdContactContactIdLambdaFunctionArn:
+    Description: 'ARN of the DeleteUserUserIdContactContactId Lambda function'
+    Value: !GetAtt JSCTrackerDeleteUserUserIdContactContactIdLambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-JSCTrackerDeleteUserUserIdContactContactIdLambdaFunctionArn'
   JSCTrackerGetAdminUsersSearchLambdaFunctionArn:
     Description: 'ARN of the GetAdminUsersSearch Lambda function'
     Value: !GetAtt JSCTrackerGetAdminUsersSearchLambdaFunction.Arn

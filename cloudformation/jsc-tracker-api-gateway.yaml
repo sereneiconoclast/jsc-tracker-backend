@@ -296,6 +296,25 @@ Resources:
           - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
           - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerPostUserUserIdContactNewLambdaFunctionArn
 
+  # DELETE /user/{user_id}/contact/{contact_id}
+  JSCTrackerDeleteUserUserIdContactContactIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      ResourceId: !Ref JSCTrackerUserUserIdContactContactIdResource
+      HttpMethod: DELETE
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.user_id: true
+        method.request.path.contact_id: true
+      Integration:
+        Type: AWS_PROXY
+        # This must be POST, per https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apigateway-method-integration.html
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations"
+          - LambdaFunctionArn: !ImportValue jsc-tracker-lambda-JSCTrackerDeleteUserUserIdContactContactIdLambdaFunctionArn
+
   # POST /user/{user_id}/contact/{contact_id}
   JSCTrackerPostUserUserIdContactContactIdMethod:
     Type: AWS::ApiGateway::Method
@@ -602,6 +621,7 @@ Resources:
       - JSCTrackerGetUserUserIdMethod
       - JSCTrackerPostUserUserIdMethod
       - JSCTrackerPostUserUserIdContactNewMethod
+      - JSCTrackerDeleteUserUserIdContactContactIdMethod
       - JSCTrackerPostUserUserIdContactContactIdMethod
       - JSCTrackerOptionsAdminJscNewMethod
       - JSCTrackerOptionsAdminUsersAssignMethod
@@ -674,6 +694,14 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName:
         !ImportValue 'jsc-tracker-lambda-JSCTrackerPostUserUserIdContactNewLambdaFunctionArn'
+      Principal: apigateway.amazonaws.com
+
+  JSCTrackerLambdaPermissionDeleteUserUserIdContactContactId:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !ImportValue 'jsc-tracker-lambda-JSCTrackerDeleteUserUserIdContactContactIdLambdaFunctionArn'
       Principal: apigateway.amazonaws.com
 
   JSCTrackerLambdaPermissionPostUserUserIdContactContactId:
