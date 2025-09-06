@@ -78,6 +78,7 @@ YAML
 
     # Indented by 2 spaces
     out = <<YAML
+  # #{operation[:http_verb]} #{operation[:path]}
   #{method_name}:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -311,12 +312,22 @@ YAML
     # 2. Resources ordered by path, alphabetically, so /admin comes before /user, and
     #    /user/z comes before /user/{a}
 
-    # First, ensure all resources are populated by walking through all operations
-    operations.keys.each do |operation_name|
-      resource_name_for_path(operations[operation_name][:path])
+    # 3. All the main-method operations, sorted by path, and when there are two with the
+    #    same path (as with GET /user/{user_id} and POST /user/{user_id}), alphabetically
+    #    by the verb (GET before POST)
+
+    # Generate main methods - this will populate resources as a side effect
+    # Sort by path first, then by HTTP verb
+    sorted_operations = operations.keys.sort_by do |operation_name|
+      operation = operations[operation_name]
+      [operation[:path], operation[:http_verb]]
     end
 
-    # Generate resource definitions sorted by path
+    main_methods = sorted_operations.map do |operation_name|
+      main_method(operation_name)
+    end.join("\n")
+
+    # Now all resources are populated, generate resource definitions sorted by path
     resource_definitions = @path_to_resource.keys.sort.map do |path|
       resource_definition(path)
     end
@@ -324,9 +335,9 @@ YAML
     out << resource_definitions.join("\n")
     out << "\n\n"
 
-    # 3. All the main-method operations, sorted by path, and when there are two with the
-    #    same path (as with GET /user/{user_id} and POST /user/{user_id}), alphabetically
-    #    by the verb (GET before POST)
+    # Add main methods to output
+    out << main_methods
+    out << "\n\n"
 
 
     # 4. All the OPTIONS entries, sorted by path
