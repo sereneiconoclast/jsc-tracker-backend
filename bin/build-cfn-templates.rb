@@ -216,6 +216,7 @@ YAML
 
     # Indented by 2 spaces
     <<YAML
+  # #{path}
   #{resource_name}:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -307,9 +308,21 @@ Resources:
 
 YAML
 
-    # 2. Resources ordered by path, starting with / (the base path mapping) and
-    #    alphabetically, so /admin comes before /user, and /user/z comes before /user/{a}
+    # 2. Resources ordered by path, alphabetically, so /admin comes before /user, and
+    #    /user/z comes before /user/{a}
 
+    # First, ensure all resources are populated by walking through all operations
+    operations.keys.each do |operation_name|
+      resource_name_for_path(operations[operation_name][:path])
+    end
+
+    # Generate resource definitions sorted by path
+    resource_definitions = @path_to_resource.keys.sort.map do |path|
+      resource_definition(path)
+    end
+
+    out << resource_definitions.join("\n")
+    out << "\n\n"
 
     # 3. All the main-method operations, sorted by path, and when there are two with the
     #    same path (as with GET /user/{user_id} and POST /user/{user_id}), alphabetically
@@ -329,7 +342,7 @@ YAML
     # 7. Finally, the Outputs: section at the end which is fixed
 
     # Zero indent
-    out << YAML
+    out << <<YAML
 
 Outputs:
   JSCTrackerApiId:
