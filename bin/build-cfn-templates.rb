@@ -69,7 +69,7 @@ YAML
     operation = operations[operation_name]
     raise "Operation '#{operation_name}' not found" unless operation
 
-    method_name = "JSCTracker#{operation_name}Method"
+    method_name = main_method_name(operation_name)
     resource_name = resource_name_for_operation(operation_name)
     function_name = "JSCTracker#{operation_name}"
 
@@ -102,11 +102,15 @@ YAML
     out
   end
 
+  def main_method_name(operation_name)
+    "JSCTracker#{operation_name}Method"
+  end
+
   def options_method(operation_name)
     operation = operations[operation_name]
     raise "Operation '#{operation_name}' not found" unless operation
 
-    method_name = "JSCTrackerOptions#{remove_verb_prefix_from_operation_name(operation_name)}Method"
+    method_name = options_method_name(operation_name)
     resource_name = resource_name_for_operation(operation_name)
 
     # Indented by 2 spaces
@@ -145,6 +149,10 @@ YAML
           ResponseModels:
             application/json: Empty
 YAML
+  end
+
+  def options_method_name(operation_name)
+    "JSCTrackerOptions#{remove_verb_prefix_from_operation_name(operation_name)}Method"
   end
 
   def lambda_permission(operation_name)
@@ -317,6 +325,9 @@ YAML
     #    same path (as with GET /user/{user_id} and POST /user/{user_id}), alphabetically
     #    by the verb (GET before POST)
 
+    # DependsOn entries will be used later, in JSCTrackerDeployment
+    depends_on_methods = []
+
     # Generate main methods - this will populate resources as a side effect
     # Sort by path first, then by HTTP verb
     sorted_operations = operations.keys.sort_by do |operation_name|
@@ -325,6 +336,7 @@ YAML
     end
 
     main_methods = sorted_operations.map do |operation_name|
+      depends_on_methods << main_method_name(operation_name)
       main_method(operation_name)
     end.join("\n")
 
@@ -352,6 +364,7 @@ YAML
       # Skip if we already generated OPTIONS for this path
       next if current_path == last_path
 
+      depends_on_methods << options_method_name(operation_name)
       options_methods << options_method(operation_name)
       last_path = current_path
     end
@@ -359,11 +372,22 @@ YAML
     out << options_methods.join("\n")
     out << "\n\n"
 
-
     # 5. JSCTrackerDeployment which is a unique entry, with the DependsOn: in the same
     #    ordering as the main-methods and OPTIONS entries appeared above it
 
+    depends_on_string = depends_on_methods.map { |m| "      - #{m}" }.join("\n")
+    # Indented by 2
+    out << <<YAML
+  JSCTrackerDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref JSCTrackerApi
+      StageName: prod
+      Description: !Sub "Deployment ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}-${AWS::StackId}"
+    DependsOn:
+#{depends_on_string}
 
+YAML
     # 6. The permissions entries, sorted by path
 
 
