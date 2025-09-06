@@ -388,8 +388,15 @@ YAML
 #{depends_on_string}
 
 YAML
-    # 6. The permissions entries, sorted by path
 
+    # 6. The permissions entries, sorted by path
+    # Generate Lambda permissions for all operations, sorted by path
+    permission_methods = sorted_operations.map do |operation_name|
+      lambda_permission(operation_name)
+    end.join("\n")
+
+    out << permission_methods
+    out << "\n\n"
 
     # 7. Finally, the Outputs: section at the end which is fixed
 
