@@ -111,6 +111,7 @@ YAML
 
     # Indented by 2 spaces
     <<YAML
+  # OPTIONS #{operation[:path]}
   #{method_name}:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -339,8 +340,24 @@ YAML
     out << main_methods
     out << "\n\n"
 
-
     # 4. All the OPTIONS entries, sorted by path
+    # Generate OPTIONS methods - avoid duplicates for same path
+    options_methods = []
+    last_path = nil
+
+    sorted_operations.each do |operation_name|
+      operation = operations[operation_name]
+      current_path = operation[:path]
+
+      # Skip if we already generated OPTIONS for this path
+      next if current_path == last_path
+
+      options_methods << options_method(operation_name)
+      last_path = current_path
+    end
+
+    out << options_methods.join("\n")
+    out << "\n\n"
 
 
     # 5. JSCTrackerDeployment which is a unique entry, with the DependsOn: in the same
