@@ -222,7 +222,10 @@ YAML
 
     resource_name = resource_info[:name]
     path_part = resource_info[:path_part]
-    parent_resource_name = resource_info[:parent_resource_name]
+    parent_resource_name = resource_info[:parent_resource_name].dup
+
+    # Most of these have a !Ref but the root uses !GetAtt JSCTrackerApi.RootResourceId
+    parent_resource_name.prepend("!Ref ") unless parent_resource_name.start_with?("!")
 
     # Indented by 2 spaces
     <<YAML
@@ -256,11 +259,24 @@ YAML
   end
 
   def api_gateway_template
+    template_sections = []
+
+    # Generate main methods - this will populate resources as a side effect
+    # Sort by path first, then by HTTP verb
+    sorted_operations = operations.keys.sort_by do |operation_name|
+      operation = operations[operation_name]
+      [operation[:path], operation[:http_verb]]
+    end
+
+    # DependsOn entries will be used in JSCTrackerDeployment
+    depends_on_methods = []
+
+    # There are 7 sections to this template currently:
     # 1. Fixed portion at the beginning (unique entries: Parameters, the Resources
     #    line, JSCTrackerApi, domain name, and DNS entry)
 
     # Zero indent
-    out = <<YAML
+    template_sections << <<YAML
 AWSTemplateFormatVersion: '2010-09-09'
 
 Parameters:
@@ -315,69 +331,53 @@ Resources:
       DomainName: !Ref JSCTrackerDomainName
       RestApiId: !Ref JSCTrackerApi
       Stage: 'prod'
-
 YAML
 
     # 2. Resources ordered by path, alphabetically, so /admin comes before /user, and
     #    /user/z comes before /user/{a}
-
+    #
     # 3. All the main-method operations, sorted by path, and when there are two with the
     #    same path (as with GET /user/{user_id} and POST /user/{user_id}), alphabetically
     #    by the verb (GET before POST)
-
-    # DependsOn entries will be used later, in JSCTrackerDeployment
-    depends_on_methods = []
-
-    # Generate main methods - this will populate resources as a side effect
-    # Sort by path first, then by HTTP verb
-    sorted_operations = operations.keys.sort_by do |operation_name|
-      operation = operations[operation_name]
-      [operation[:path], operation[:http_verb]]
-    end
+    #
+    # Calling main_method() on everything populates all resource definitions as
+    # a side-effect, so we build those first but add them to the template second
 
     main_methods = sorted_operations.map do |operation_name|
       depends_on_methods << main_method_name(operation_name)
       main_method(operation_name)
-    end.join("\n")
+    end
 
-    # Now all resources are populated, generate resource definitions sorted by path
     resource_definitions = @path_to_resource.keys.sort.map do |path|
       resource_definition(path)
     end
 
-    out << resource_definitions.join("\n")
-    out << "\n\n"
-
-    # Add main methods to output
-    out << main_methods
-    out << "\n\n"
+    template_sections << resource_definitions.join("\n")
+    template_sections << main_methods.join("\n")
 
     # 4. All the OPTIONS entries, sorted by path
     # Generate OPTIONS methods - avoid duplicates for same path
-    options_methods = []
     last_path = nil
-
-    sorted_operations.each do |operation_name|
+    options_methods = sorted_operations.filter_map do |operation_name|
       operation = operations[operation_name]
       current_path = operation[:path]
 
       # Skip if we already generated OPTIONS for this path
       next if current_path == last_path
+      last_path = current_path
 
       depends_on_methods << options_method_name(operation_name)
-      options_methods << options_method(operation_name)
-      last_path = current_path
+      options_method(operation_name)
     end
 
-    out << options_methods.join("\n")
-    out << "\n\n"
+    template_sections << options_methods.join("\n")
 
     # 5. JSCTrackerDeployment which is a unique entry, with the DependsOn: in the same
     #    ordering as the main-methods and OPTIONS entries appeared above it
 
     depends_on_string = depends_on_methods.map { |m| "      - #{m}" }.join("\n")
     # Indented by 2
-    out << <<YAML
+    template_sections << <<YAML
   JSCTrackerDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties:
@@ -386,23 +386,20 @@ YAML
       Description: !Sub "Deployment ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}-${AWS::StackId}"
     DependsOn:
 #{depends_on_string}
-
 YAML
 
     # 6. The permissions entries, sorted by path
     # Generate Lambda permissions for all operations, sorted by path
     permission_methods = sorted_operations.map do |operation_name|
       lambda_permission(operation_name)
-    end.join("\n")
+    end
 
-    out << permission_methods
-    out << "\n\n"
+    template_sections << permission_methods.join("\n")
 
     # 7. Finally, the Outputs: section at the end which is fixed
 
     # Zero indent
-    out << <<YAML
-
+    template_sections << <<YAML
 Outputs:
   JSCTrackerApiId:
     Description: ID of the REST API
@@ -419,7 +416,7 @@ Outputs:
       Name: !Sub '${AWS::StackName}-JSCTrackerRegionalDomainName'
 YAML
 
-    out
+    template_sections.join("\n")
   end
 
   private
